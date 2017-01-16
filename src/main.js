@@ -29,6 +29,7 @@ const defaults = {
 
   // internal defaults
   trxImmediate: true,
+  delayRelease: true,
 
   // general defaults
   Promise: global.Promise
@@ -45,6 +46,7 @@ class Sqlite {
       min,
       max,
       trxImmediate,
+      delayRelease,
       acquireTimeout,
       Promise
     } = Object.assign({}, defaults, options);
@@ -53,6 +55,7 @@ class Sqlite {
     this.pool_options = { min, max, Promise, acquireTimeoutMillis: acquireTimeout };
     this.sqlite_options = { mode, busyTimeout, foreignKeys, walMode };
     this.trxImmediate = trxImmediate;
+    this.delayRelease = delayRelease;
     this.Promise = Promise;
 
     // Factory functions for generic-pool
@@ -100,6 +103,65 @@ class Sqlite {
 
     // Create pool
     this.pool = genericPool.createPool(this.pool_factory, this.pool_options);
+  }
+
+  _release (connection) {
+    if (this.delayRelease) {
+      return setImmediate(() => this.pool.release(connection));
+    }
+    else {
+      return this.pool.release(connection);
+    }
+  }
+
+  async exec (...args) {
+    let connection = await this.pool.acquire();
+
+    let result = await connection.exec(...args);
+
+    let release = this._release(connection);
+
+    return result;
+  }
+
+  async run (...args) {
+    let connection = await this.pool.acquire();
+
+    let result = await connection.run(...args);
+
+    let release = this._release(connection);
+
+    return result;
+  }
+
+  async get (...args) {
+    let connection = await this.pool.acquire();
+
+    let result = await connection.get(...args);
+
+    let release = this._release(connection);
+
+    return result;
+  }
+
+  async all (...args) {
+    let connection = await this.pool.acquire();
+
+    let result = await connection.all(...args);
+
+    let release = this._release(connection);
+
+    return result;
+  }
+
+  async each (...args) {
+    let connection = await this.pool.acquire();
+
+    let result = await connection.each(...args);
+
+    let release = this._release(connection);
+
+    return result;
   }
 
 }
