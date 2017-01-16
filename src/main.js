@@ -52,14 +52,14 @@ class Sqlite {
     } = Object.assign({}, defaults, options);
 
     // Re-consolidate options
-    this.pool_options = { min, max, Promise, acquireTimeoutMillis: acquireTimeout };
-    this.sqlite_options = { mode, busyTimeout, foreignKeys, walMode };
-    this.trxImmediate = trxImmediate;
-    this.delayRelease = delayRelease;
+    this._pool_options = { min, max, Promise, acquireTimeoutMillis: acquireTimeout };
+    this._sqlite_options = { mode, busyTimeout, foreignKeys, walMode };
+    this._trxImmediate = trxImmediate;
+    this._delayRelease = delayRelease;
     this.Promise = Promise;
 
     // Factory functions for generic-pool
-    this.pool_factory = {
+    this._pool_factory = {
       create: async () => {
         // Create database connection, wait until open complete
         let connection = await new Promise((resolve, reject) => {
@@ -102,20 +102,20 @@ class Sqlite {
     };
 
     // Create pool
-    this.pool = genericPool.createPool(this.pool_factory, this.pool_options);
+    this._pool = genericPool.createPool(this._pool_factory, this._pool_options);
   }
 
   _release (connection) {
-    if (this.delayRelease) {
-      return setImmediate(() => this.pool.release(connection));
+    if (this._delayRelease) {
+      return setImmediate(() => this._pool.release(connection));
     }
     else {
-      return this.pool.release(connection);
+      return this._pool.release(connection);
     }
   }
 
   async exec (...args) {
-    let connection = await this.pool.acquire();
+    let connection = await this._pool.acquire();
 
     let result = await connection.exec(...args);
 
@@ -125,7 +125,7 @@ class Sqlite {
   }
 
   async run (...args) {
-    let connection = await this.pool.acquire();
+    let connection = await this._pool.acquire();
 
     let result = await connection.run(...args);
 
@@ -135,7 +135,7 @@ class Sqlite {
   }
 
   async get (...args) {
-    let connection = await this.pool.acquire();
+    let connection = await this._pool.acquire();
 
     let result = await connection.get(...args);
 
@@ -145,7 +145,7 @@ class Sqlite {
   }
 
   async all (...args) {
-    let connection = await this.pool.acquire();
+    let connection = await this._pool.acquire();
 
     let result = await connection.all(...args);
 
@@ -155,7 +155,7 @@ class Sqlite {
   }
 
   async each (...args) {
-    let connection = await this.pool.acquire();
+    let connection = await this._pool.acquire();
 
     let result = await connection.each(...args);
 
