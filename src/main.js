@@ -53,6 +53,12 @@ class Sqlite {
       Promise
     } = Object.assign({}, defaults, options);
 
+    // Special case for in-memory database
+    if (filename === ':memory:') {
+      min = 1;
+      max = 1;
+    }
+
     // Re-consolidate options
     this._pool_opts = { min, max, Promise, acquireTimeoutMillis: acquireTimeout };
     this._sqlite_opts = { filename, mode, busyTimeout, foreignKeys, walMode };
