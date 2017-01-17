@@ -162,26 +162,22 @@ class Sqlite {
 
   async exec (...args) {
     let connection = await this._pool.acquire();
-    let result;
     try {
-      result = await connection.exec(...args);
+      await connection.exec(...args);
     }
     finally {
       this._release(connection);
     }
-    return result;
   }
 
   async run (...args) {
     let connection = await this._pool.acquire();
-    let result;
     try {
-      result = await connection.run(...args);
+      await connection.run(...args);
     }
     finally {
       this._release(connection);
     }
-    return result;
   }
 
   async get (...args) {
