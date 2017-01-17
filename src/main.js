@@ -65,8 +65,8 @@ class Sqlite {
     this._pool_opts = { min, max, Promise, acquireTimeoutMillis: acquireTimeout };
     this._sqlite_opts = { filename, mode, busyTimeout, foreignKeys, walMode };
     this._sqlite_ext = loadExtensions;
-    this._trx_immediate = trxImmediate;
-    this._delay_release = delayRelease;
+    this.trxImmediate = trxImmediate;
+    this.delayRelease = delayRelease;
     this.Promise = Promise;
 
     // Factory functions for generic-pool
@@ -81,15 +81,18 @@ class Sqlite {
   }
 
   async _create () {
+    const Promise = this.Promise;
+    const trxImmediate = this.trxImmediate;
+
     // Create database connection, wait until open complete
-    let connection = await new this.Promise((resolve, reject) => {
+    let connection = await new Promise((resolve, reject) => {
       let options = this._sqlite_opts;
       let driver;
       let callback = (err) => {
         if (err) {
           return reject(err);
         }
-        return resolve(new Database(driver, { Promise: this.Promise }));
+        return resolve(new Database(driver, { Promise, trxImmediate }));
       }
 
       if (options.mode !== null) {
@@ -110,7 +113,7 @@ class Sqlite {
     // Await each for consistency
     for (const extension of this._sqlite_ext) {
       let extensionPath = path.resolve(extension);
-      await new this.Promise((resolve, reject) => {
+      await new Promise((resolve, reject) => {
         connection.driver.loadExtension(extensionPath, (err) => {
           if (err) {
             return reject(err);
@@ -144,7 +147,7 @@ class Sqlite {
   }
 
   _release (connection) {
-    if (this._delay_release) {
+    if (this.delayRelease) {
       return setImmediate(() => this._pool.release(connection));
     }
     else {
@@ -207,47 +210,12 @@ class Sqlite {
     return result;
   }
 
-  async transaction (fn, trx_immediate) {
+  async transaction (fn, immediate = this.trxImmediate) {
     let connection = await this._pool.acquire();
 
-    // Begin transaction
-    if (trx_immediate === undefined) {
-      trx_immediate = this._trx_immediate;
-    }
-    if (trx_immediate) {
-      await connection.exec('BEGIN IMMEDIATE');
-    }
-    else {
-      await connection.exec('BEGIN');
-    }
+    let result = await connection.transaction(fn, immediate);
 
-    try {
-      // Pass connection to function
-      let result = fn(connection);
-
-      // If function didn't return a thenable, wait
-      if (isThenable(result)) {
-        await result;
-      }
-      else {
-        await connection.wait();
-      }
-
-      // Commit
-      await connection.exec('COMMIT');
-    }
-    catch (err) {
-      // Roll back, release connection, and re-throw
-      try {
-        await connection.exec('ROLLBACK');
-        this._release(connection);
-      }
-      catch (e) {
-        // In case the connection itself has a problem
-        this._pool.destroy(connection);
-      }
-      throw err;
-    }
+    this._release(connection);
 
     return result;
   }

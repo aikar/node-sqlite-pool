@@ -17,9 +17,10 @@ class Database {
    * @param driver An instance of SQLite3 driver library.
    * @param promiseLibrary ES6 Promise library to use.
      */
-  constructor (driver, { Promise }) {
+  constructor (driver, { Promise, trxImmediate }) {
     this.driver = driver;
     this.Promise = Promise;
+    this.trxImmediate = trxImmediate;
   }
 
   run (sql, ...params) {
@@ -140,6 +141,37 @@ class Database {
         }
       });
     });
+  }
+
+  async transaction (fn, immediate = this.trxImmediate) {
+    // Begin transaction
+    if (immediate) {
+      await this.exec('BEGIN IMMEDIATE');
+    }
+    else {
+      await this.exec('BEGIN');
+    }
+
+    try {
+      // Pass connection to function
+      let result = fn(this);
+
+      // If function didn't return a thenable, wait
+      if (isThenable(result)) {
+        await result;
+      }
+      else {
+        await this.wait();
+      }
+
+      // Commit
+      await this.exec('COMMIT');
+    }
+    catch (err) {
+      // Roll back, release connection, and re-throw
+      await this.exec('ROLLBACK');
+      throw err;
+    }
   }
 
 }
