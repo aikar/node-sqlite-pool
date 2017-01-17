@@ -11,37 +11,38 @@ import { prepareParams } from './utils';
 
 class Statement {
 
-  constructor(stmt, Promise) {
+  constructor (stmt, Promise) {
     this.stmt = stmt;
     this.Promise = Promise;
   }
 
-  get sql() {
+  get sql () {
     return this.stmt.sql;
   }
 
-  get lastID() {
+  get lastID () {
     return this.stmt.lastID;
   }
 
-  get changes() {
+  get changes () {
     return this.stmt.changes;
   }
 
-  bind() {
+  bind () {
     const params = prepareParams(arguments);
     return new this.Promise((resolve, reject) => {
       this.stmt.bind(params, (err) => {
         if (err) {
           reject(err);
-        } else {
+        }
+        else {
           resolve(this);
         }
       });
     });
   }
 
-  reset() {
+  reset () {
     return new this.Promise((resolve) => {
       this.stmt.reset(() => {
         resolve(this);
@@ -49,65 +50,70 @@ class Statement {
     });
   }
 
-  finalize() {
+  finalize () {
     return new this.Promise((resolve, reject) => {
       this.stmt.finalize((err) => {
         if (err) {
           reject(err);
-        } else {
+        }
+        else {
           resolve();
         }
       });
     });
   }
 
-  run() {
+  run () {
     const params = prepareParams(arguments);
     return new this.Promise((resolve, reject) => {
       this.stmt.run(params, (err) => {
         if (err) {
           reject(err);
-        } else {
+        }
+        else {
           resolve(this);
         }
       });
     });
   }
 
-  get() {
+  get () {
     const params = prepareParams(arguments);
     return new this.Promise((resolve, reject) => {
       this.stmt.get(params, (err, row) => {
         if (err) {
           reject(err);
-        } else {
+        }
+        else {
           resolve(row);
         }
       });
     });
   }
 
-  all() {
+  all () {
     const params = prepareParams(arguments);
     return new this.Promise((resolve, reject) => {
       this.stmt.all(params, (err, rows) => {
         if (err) {
           reject(err);
-        } else {
+        }
+        else {
           resolve(rows);
         }
       });
     });
   }
 
-  each() {
+  each () {
     const params = prepareParams(arguments, { excludeLastArg: true });
     const callback = arguments[arguments.length - 1];
     return new this.Promise((resolve, reject) => {
       this.stmt.each(params, callback, (err, rowsCount = 0) => {
         if (err) {
           reject(err);
-        } else {
+        }
+        else {
           resolve(rowsCount);
         }
       });

@@ -17,19 +17,20 @@ class Database {
    * @param driver An instance of SQLite3 driver library.
    * @param promiseLibrary ES6 Promise library to use.
      */
-  constructor(driver, { Promise }) {
+  constructor (driver, { Promise }) {
     this.driver = driver;
     this.Promise = Promise;
   }
 
-  run(sql) {
+  run (sql) {
     const params = prepareParams(arguments, { offset: 1 });
     const Promise = this.Promise;
     return new Promise((resolve, reject) => {
       this.driver.run(sql, params, function runExecResult(err) {
         if (err) {
           reject(err);
-        } else {
+        }
+        else {
           // Per https://github.com/mapbox/node-sqlite3/wiki/API#databaserunsql-param--callback
           // when run() succeeds, the `this' object is a driver statement object. Wrap it as a
           // Statement.
@@ -39,26 +40,28 @@ class Database {
     });
   }
 
-  get(sql) {
+  get (sql) {
     const params = prepareParams(arguments, { offset: 1 });
     return new this.Promise((resolve, reject) => {
       this.driver.get(sql, params, (err, row) => {
         if (err) {
           reject(err);
-        } else {
+        }
+        else {
           resolve(row);
         }
       });
     });
   }
 
-  all(sql) {
+  all (sql) {
     const params = prepareParams(arguments, { offset: 1 });
     return new this.Promise((resolve, reject) => {
       this.driver.all(sql, params, (err, rows) => {
         if (err) {
           reject(err);
-        } else {
+        }
+        else {
           resolve(rows);
         }
       });
@@ -68,39 +71,42 @@ class Database {
   /**
    * Runs all the SQL queries in the supplied string. No result rows are retrieved.
    */
-  exec(sql) {
+  exec (sql) {
     return new this.Promise((resolve, reject) => {
       this.driver.exec(sql, (err) => {
         if (err) {
           reject(err);
-        } else {
+        }
+        else {
           resolve(this);
         }
       });
     });
   }
 
-  each(sql) {
+  each (sql) {
     const params = prepareParams(arguments, { offset: 1, excludeLastArg: true });
     const callback = arguments[arguments.length - 1];
     return new this.Promise((resolve, reject) => {
       this.driver.each(sql, params, callback, (err, rowsCount = 0) => {
         if (err) {
           reject(err);
-        } else {
+        }
+        else {
           resolve(rowsCount);
         }
       });
     });
   }
 
-  prepare(sql) {
+  prepare (sql) {
     const params = prepareParams(arguments, { offset: 1 });
     return new this.Promise((resolve, reject) => {
       const stmt = this.driver.prepare(sql, params, (err) => {
         if (err) {
           reject(err);
-        } else {
+        }
+        else {
           resolve(new Statement(stmt, this.Promise));
         }
       });
