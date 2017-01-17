@@ -12,7 +12,6 @@
 import sqlite3 from 'sqlite3';
 import genericPool from 'generic-pool';
 import Database from './Database';
-import Transaction from './Transaction';
 import { isThenable } from './utils';
 
 // Default options
@@ -176,30 +175,43 @@ class Sqlite {
 
   async transaction (fn, trxImmediate) {
     let connection = await this._pool.acquire();
-    let trx = new Transaction(connection, null);
 
     // Begin transaction
     if (trxImmediate === undefined) {
       trxImmediate = this._trxImmediate;
     }
-    await trx.begin(trxImmediate);
+    if (trxImmediate) {
+      await connection.exec('BEGIN IMMEDIATE');
+    }
+    else {
+      await connection.exec('BEGIN');
+    }
 
     try {
       // Pass connection to function
-      let result = fn(trx);
+      let result = fn(connection);
 
       // If function didn't return a thenable, wait
-      if (!isThenable(result)) {
-        await trx.wait();
+      if (isThenable(result)) {
+        await result;
+      }
+      else {
+        await connection.wait();
       }
 
       // Commit
-      await trx.commit();
+      await connection.exec('COMMIT');
     }
     catch (err) {
       // Roll back, release connection, and re-throw
-      await trx.rollback();
-      this._release(connection);
+      try {
+        await connection.exec('ROLLBACK');
+        this._release(connection);
+      }
+      catch (e) {
+        // In case the connection itself has a problem
+        this._pool.destroy(connection);
+      }
       throw err;
     }
 
