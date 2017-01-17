@@ -159,7 +159,7 @@ class Database {
 
       // If function didn't return a thenable, wait
       if (isThenable(result)) {
-        await result;
+        result = await result;
       }
       else {
         await this.wait();
