@@ -162,61 +162,73 @@ class Sqlite {
 
   async exec (...args) {
     let connection = await this._pool.acquire();
-
-    let result = await connection.exec(...args);
-
-    this._release(connection);
-
+    let result;
+    try {
+      result = await connection.exec(...args);
+    }
+    finally {
+      this._release(connection);
+    }
     return result;
   }
 
   async run (...args) {
     let connection = await this._pool.acquire();
-
-    let result = await connection.run(...args);
-
-    this._release(connection);
-
+    let result;
+    try {
+      result = await connection.run(...args);
+    }
+    finally {
+      this._release(connection);
+    }
     return result;
   }
 
   async get (...args) {
     let connection = await this._pool.acquire();
-
-    let result = await connection.get(...args);
-
-    this._release(connection);
-
+    let result;
+    try {
+      result = await connection.get(...args);
+    }
+    finally {
+      this._release(connection);
+    }
     return result;
   }
 
   async all (...args) {
     let connection = await this._pool.acquire();
-
-    let result = await connection.all(...args);
-
-    this._release(connection);
-
+    let result;
+    try {
+      result = await connection.all(...args);
+    }
+    finally {
+      this._release(connection);
+    }
     return result;
   }
 
   async each (...args) {
     let connection = await this._pool.acquire();
-
-    let result = await connection.each(...args);
-
-    this._release(connection);
-
+    let result;
+    try {
+      result = await connection.each(...args);
+    }
+    finally {
+      this._release(connection);
+    }
     return result;
   }
 
   async transaction (fn, immediate = this.trxImmediate) {
     let connection = await this._pool.acquire();
-
-    let result = await connection.transaction(fn, immediate);
-
-    this._release(connection);
-
+    let result;
+    try {
+      result = await connection.transaction(fn, immediate);
+    }
+    finally {
+      this._release(connection);
+    }
     return result;
   }
 
