@@ -306,17 +306,11 @@ class Sqlite {
       if (!migrations.some(x => x.id === migration.id) ||
           (force === 'last' && migration.id === lastMigration.id))
       {
-        await this.run('BEGIN IMMEDIATE');
-        try {
-          await this.exec(migration.down);
-          await this.run(`DELETE FROM "${table}" WHERE id = ?`, migration.id);
-          await this.run('COMMIT');
-          dbMigrations = dbMigrations.filter(x => x.id !== migration.id);
-        }
-        catch (err) {
-          await this.run('ROLLBACK');
-          throw err;
-        }
+        await this.transaction(async trx => {
+          await trx.exec(migration.down);
+          await trx.run(`DELETE FROM "${table}" WHERE id = ?`, migration.id);
+        });
+        dbMigrations = dbMigrations.filter(x => x.id !== migration.id);
       }
       else {
         break;
@@ -329,19 +323,13 @@ class Sqlite {
                           : 0;
     for (const migration of migrations) {
       if (migration.id > lastMigrationId) {
-        await this.run('BEGIN IMMEDIATE');
-        try {
-          await this.exec(migration.up);
-          await this.run(
+        await this.transaction(async trx => {
+          await trx.exec(migration.up);
+          await trx.run(
             `INSERT INTO "${table}" (id, name, up, down) VALUES (?, ?, ?, ?)`,
             migration.id, migration.name, migration.up, migration.down,
           );
-          await this.run('COMMIT');
-        }
-        catch (err) {
-          await this.run('ROLLBACK');
-          throw err;
-        }
+        });
       }
     }
 
