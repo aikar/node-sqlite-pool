@@ -22,9 +22,13 @@ class Database {
     this.Promise = Promise;
   }
 
-  run (sql) {
-    const params = prepareParams(arguments, { offset: 1 });
+  run (sql, ...params) {
     const Promise = this.Promise;
+
+    if (params.length === 1) {
+      params = params[0];
+    }
+
     return new Promise((resolve, reject) => {
       this.driver.run(sql, params, function runExecResult(err) {
         if (err) {
@@ -40,8 +44,11 @@ class Database {
     });
   }
 
-  get (sql) {
-    const params = prepareParams(arguments, { offset: 1 });
+  get (sql, ...params) {
+    if (params.length === 1) {
+      params = params[0];
+    }
+
     return new this.Promise((resolve, reject) => {
       this.driver.get(sql, params, (err, row) => {
         if (err) {
@@ -54,8 +61,11 @@ class Database {
     });
   }
 
-  all (sql) {
-    const params = prepareParams(arguments, { offset: 1 });
+  all (sql, ...params) {
+    if (params.length === 1) {
+      params = params[0];
+    }
+
     return new this.Promise((resolve, reject) => {
       this.driver.all(sql, params, (err, rows) => {
         if (err) {
@@ -84,9 +94,12 @@ class Database {
     });
   }
 
-  each (sql) {
-    const params = prepareParams(arguments, { offset: 1, excludeLastArg: true });
-    const callback = arguments[arguments.length - 1];
+  each (sql, ...params) {
+    const callback = params.pop();
+    if (params.length === 1) {
+      params = params[0];
+    }
+
     return new this.Promise((resolve, reject) => {
       this.driver.each(sql, params, callback, (err, rowsCount = 0) => {
         if (err) {
@@ -99,8 +112,11 @@ class Database {
     });
   }
 
-  prepare (sql) {
-    const params = prepareParams(arguments, { offset: 1 });
+  prepare (sql, ...params) {
+    if (params.length === 1) {
+      params = params[0];
+    }
+
     return new this.Promise((resolve, reject) => {
       const stmt = this.driver.prepare(sql, params, (err) => {
         if (err) {

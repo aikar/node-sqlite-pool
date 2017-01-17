@@ -28,8 +28,11 @@ class Statement {
     return this.stmt.changes;
   }
 
-  bind () {
-    const params = prepareParams(arguments);
+  bind (...params) {
+    if (params.length === 1) {
+      params = params[0];
+    }
+
     return new this.Promise((resolve, reject) => {
       this.stmt.bind(params, (err) => {
         if (err) {
@@ -63,8 +66,11 @@ class Statement {
     });
   }
 
-  run () {
-    const params = prepareParams(arguments);
+  run (...params) {
+    if (params.length === 1) {
+      params = params[0];
+    }
+
     return new this.Promise((resolve, reject) => {
       this.stmt.run(params, (err) => {
         if (err) {
@@ -77,8 +83,11 @@ class Statement {
     });
   }
 
-  get () {
-    const params = prepareParams(arguments);
+  get (...params) {
+    if (params.length === 1) {
+      params = params[0];
+    }
+
     return new this.Promise((resolve, reject) => {
       this.stmt.get(params, (err, row) => {
         if (err) {
@@ -91,8 +100,11 @@ class Statement {
     });
   }
 
-  all () {
-    const params = prepareParams(arguments);
+  all (...params) {
+    if (params.length === 1) {
+      params = params[0];
+    }
+
     return new this.Promise((resolve, reject) => {
       this.stmt.all(params, (err, rows) => {
         if (err) {
@@ -105,9 +117,12 @@ class Statement {
     });
   }
 
-  each () {
-    const params = prepareParams(arguments, { excludeLastArg: true });
-    const callback = arguments[arguments.length - 1];
+  each (...params) {
+    const callback = params.pop();
+    if (params.length === 1) {
+      params = params[0];
+    }
+
     return new this.Promise((resolve, reject) => {
       this.stmt.each(params, callback, (err, rowsCount = 0) => {
         if (err) {
