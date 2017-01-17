@@ -98,7 +98,16 @@ class Sqlite {
         return connection;
       },
 
-      destroy: (connection) => connection.close()
+      destroy: (connection) => {
+        return new Promise((resolve, reject) => {
+          connection.driver.close((err) => {
+            if (err) {
+              return reject(err);
+            }
+            return resolve();
+          });
+        });
+      }
     };
 
     // Create pool
