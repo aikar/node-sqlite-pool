@@ -152,9 +152,10 @@ class Database {
       await this.exec('BEGIN');
     }
 
+    let result;
     try {
       // Pass connection to function
-      let result = fn(this);
+      result = fn(this);
 
       // If function didn't return a thenable, wait
       if (isThenable(result)) {
@@ -172,6 +173,8 @@ class Database {
       await this.exec('ROLLBACK');
       throw err;
     }
+
+    return result;
   }
 
 }
