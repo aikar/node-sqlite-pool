@@ -8,7 +8,7 @@
  */
 
 import Statement from './Statement';
-import { prepareParams } from './utils';
+import { isThenable } from './utils';
 
 class Database {
 
