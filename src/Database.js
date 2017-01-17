@@ -10,7 +10,7 @@
 import fs from 'fs';
 import path from 'path';
 import Statement from './Statement';
-import prepareParams from './utils';
+import { prepareParams } from './utils';
 
 class Database {
 
@@ -22,21 +22,6 @@ class Database {
   constructor(driver, { Promise }) {
     this.driver = driver;
     this.Promise = Promise;
-  }
-
-  /**
-   * Close the database.
-   */
-  close() {
-    return new this.Promise((resolve, reject) => {
-      this.driver.close((err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
   }
 
   run(sql) {
@@ -119,6 +104,19 @@ class Database {
           reject(err);
         } else {
           resolve(new Statement(stmt, this.Promise));
+        }
+      });
+    });
+  }
+
+  wait () {
+    return new this.Promise((resolve, reject) => {
+      this.driver.wait((err) => {
+        if (err) {
+          reject(err);
+        }
+        else {
+          resolve();
         }
       });
     });
