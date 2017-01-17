@@ -60,59 +60,62 @@ class Sqlite {
 
     // Factory functions for generic-pool
     this._pool_factory = {
-      create: async () => {
-        // Create database connection, wait until open complete
-        let connection = await new this.Promise((resolve, reject) => {
-          let opts = this._sqlite_opts;
-          let driver;
-          let callback = (err) => {
-            if (err) {
-              return reject(err);
-            }
-            return resolve(new Database(driver, { Promise: this.Promise }));
-          }
+      create: () => this._create(),
 
-          if (opts.mode !== null) {
-            driver = new sqlite3.Database(opts.filename, opts.mode, callback);
-          }
-          else {
-            driver = new sqlite3.Database(opts.filename, callback);
-          }
-
-          // Busy timeout default hardcoded to 1000ms, so
-          // only configure if a different value given
-          if (opts.busyTimeout !== 1000) {
-            driver.configure('busyTimeout', opts.busyTimeout);
-          }
-
-        });
-
-        // Set foreign keys and/or WAL mode as appropriate
-        if (opts.foreignKeys) {
-          await connection.exec('PRAGMA foreign_keys = ON;');
-        }
-        if (opts.walMode) {
-          await connection.exec('PRAGMA journal_mode = WAL;');
-        }
-
-        // Return now-configured db connection
-        return connection;
-      },
-
-      destroy: (connection) => {
-        return new Promise((resolve, reject) => {
-          connection.driver.close((err) => {
-            if (err) {
-              return reject(err);
-            }
-            return resolve();
-          });
-        });
-      }
+      destroy: (connection) => this._destroy(connection)
     };
 
     // Create pool
     this._pool = genericPool.createPool(this._pool_factory, this._pool_opts);
+  }
+
+  async _create () {
+    // Create database connection, wait until open complete
+    let connection = await new this.Promise((resolve, reject) => {
+      let options = this._sqlite_opts;
+      let driver;
+      let callback = (err) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(new Database(driver, { Promise: this.Promise }));
+      }
+
+      if (options.mode !== null) {
+        driver = new sqlite3.Database(options.filename, options.mode, callback);
+      }
+      else {
+        driver = new sqlite3.Database(options.filename, callback);
+      }
+
+      // Busy timeout default hardcoded to 1000ms, so
+      // only configure if a different value given
+      if (options.busyTimeout !== 1000) {
+        driver.configure('busyTimeout', options.busyTimeout);
+      }
+    });
+
+    // Set foreign keys and/or WAL mode as appropriate
+    if (options.foreignKeys) {
+      await connection.exec('PRAGMA foreign_keys = ON;');
+    }
+    if (options.walMode) {
+      await connection.exec('PRAGMA journal_mode = WAL;');
+    }
+
+    // Return now-configured db connection
+    return connection;
+  }
+
+  _destroy (connection) {
+    return new this.Promise((resolve, reject) => {
+      connection.driver.close((err) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve();
+      });
+    });
   }
 
   _release (connection) {
