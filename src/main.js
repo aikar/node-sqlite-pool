@@ -306,52 +306,54 @@ class Sqlite {
       });
     })));
 
-    // Create a database table for migrations meta data if it doesn't exist
-    await this.run(`CREATE TABLE IF NOT EXISTS "${table}" (
+    await this.use(async (conn) => {
+      // Create a database table for migrations meta data if it doesn't exist
+      await conn.run(`CREATE TABLE IF NOT EXISTS "${table}" (
   id   INTEGER PRIMARY KEY,
   name TEXT    NOT NULL,
   up   TEXT    NOT NULL,
   down TEXT    NOT NULL
 )`);
 
-    // Get the list of already applied migrations
-    let dbMigrations = await this.all(
-      `SELECT id, name, up, down FROM "${table}" ORDER BY id ASC`,
-    );
+      // Get the list of already applied migrations
+      let dbMigrations = await conn.all(
+        `SELECT id, name, up, down FROM "${table}" ORDER BY id ASC`,
+      );
 
-    // Undo migrations that exist only in the database but not in files,
-    // also undo the last migration if the `force` option was set to `last`.
-    const lastMigration = migrations[migrations.length - 1];
-    for (const migration of dbMigrations.slice().sort((a, b) => a.id < b.id)) {
-      if (!migrations.some(x => x.id === migration.id) ||
-          (force === 'last' && migration.id === lastMigration.id))
-      {
-        await this.transaction(async trx => {
-          await trx.exec(migration.down);
-          await trx.run(`DELETE FROM "${table}" WHERE id = ?`, migration.id);
-        });
-        dbMigrations = dbMigrations.filter(x => x.id !== migration.id);
+      // Undo migrations that exist only in the database but not in files,
+      // also undo the last migration if the `force` option was set to `last`.
+      const lastMigration = migrations[migrations.length - 1];
+      for (const migration of dbMigrations.slice().sort((a, b) => a.id < b.id)) {
+        if (!migrations.some(x => x.id === migration.id) ||
+            (force === 'last' && migration.id === lastMigration.id))
+        {
+          await conn.transaction(async (trx) => {
+            await trx.exec(migration.down);
+            await trx.run(`DELETE FROM "${table}" WHERE id = ?`, migration.id);
+          });
+          dbMigrations = dbMigrations.filter(x => x.id !== migration.id);
+        }
+        else {
+          break;
+        }
       }
-      else {
-        break;
-      }
-    }
 
-    // Apply pending migrations
-    const lastMigrationId = dbMigrations.length
-                          ? dbMigrations[dbMigrations.length - 1].id
-                          : 0;
-    for (const migration of migrations) {
-      if (migration.id > lastMigrationId) {
-        await this.transaction(async trx => {
-          await trx.exec(migration.up);
-          await trx.run(
-            `INSERT INTO "${table}" (id, name, up, down) VALUES (?, ?, ?, ?)`,
-            migration.id, migration.name, migration.up, migration.down,
-          );
-        });
+      // Apply pending migrations
+      const lastMigrationId = dbMigrations.length
+                            ? dbMigrations[dbMigrations.length - 1].id
+                            : 0;
+      for (const migration of migrations) {
+        if (migration.id > lastMigrationId) {
+          await conn.transaction(async (trx) => {
+            await trx.exec(migration.up);
+            await trx.run(
+              `INSERT INTO "${table}" (id, name, up, down) VALUES (?, ?, ?, ?)`,
+              migration.id, migration.name, migration.up, migration.down
+            );
+          });
+        }
       }
-    }
+    });
 
     return this;
   }
