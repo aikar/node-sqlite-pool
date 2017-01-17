@@ -52,45 +52,46 @@ class Sqlite {
     } = Object.assign({}, defaults, options);
 
     // Re-consolidate options
-    this._pool_options = { min, max, Promise, acquireTimeoutMillis: acquireTimeout };
-    this._sqlite_options = { mode, busyTimeout, foreignKeys, walMode };
-    this._trxImmediate = trxImmediate;
-    this._delayRelease = delayRelease;
+    this._pool_opts = { min, max, Promise, acquireTimeoutMillis: acquireTimeout };
+    this._sqlite_opts = { filename, mode, busyTimeout, foreignKeys, walMode };
+    this._trx_immediate = trxImmediate;
+    this._delay_release = delayRelease;
     this.Promise = Promise;
 
     // Factory functions for generic-pool
     this._pool_factory = {
       create: async () => {
         // Create database connection, wait until open complete
-        let connection = await new Promise((resolve, reject) => {
+        let connection = await new this.Promise((resolve, reject) => {
+          let opts = this._sqlite_opts;
           let driver;
+          let callback = (err) => {
+            if (err) {
+              return reject(err);
+            }
+            return resolve(new Database(driver, { Promise: this.Promise }));
+          }
 
-          if (mode !== null) {
-            driver = new sqlite3.Database(filename, mode, callback);
+          if (opts.mode !== null) {
+            driver = new sqlite3.Database(opts.filename, opts.mode, callback);
           }
           else {
-            driver = new sqlite3.Database(filename, callback);
+            driver = new sqlite3.Database(opts.filename, callback);
           }
 
           // Busy timeout default hardcoded to 1000ms, so
           // only configure if a different value given
-          if (busyTimeout !== 1000) {
-            driver.configure('busyTimeout', busyTimeout);
+          if (opts.busyTimeout !== 1000) {
+            driver.configure('busyTimeout', opts.busyTimeout);
           }
 
-          function callback (err) {
-            if (err) {
-              return reject(err);
-            }
-            return resolve(new Database(driver, { Promise }));
-          }
         });
 
         // Set foreign keys and/or WAL mode as appropriate
-        if (foreignKeys) {
+        if (opts.foreignKeys) {
           await connection.exec('PRAGMA foreign_keys = ON;');
         }
-        if (walMode) {
+        if (opts.walMode) {
           await connection.exec('PRAGMA journal_mode = WAL;');
         }
 
@@ -111,11 +112,11 @@ class Sqlite {
     };
 
     // Create pool
-    this._pool = genericPool.createPool(this._pool_factory, this._pool_options);
+    this._pool = genericPool.createPool(this._pool_factory, this._pool_opts);
   }
 
   _release (connection) {
-    if (this._delayRelease) {
+    if (this._delay_release) {
       return setImmediate(() => this._pool.release(connection));
     }
     else {
@@ -173,14 +174,14 @@ class Sqlite {
     return result;
   }
 
-  async transaction (fn, trxImmediate) {
+  async transaction (fn, trx_immediate) {
     let connection = await this._pool.acquire();
 
     // Begin transaction
-    if (trxImmediate === undefined) {
-      trxImmediate = this._trxImmediate;
+    if (trx_immediate === undefined) {
+      trx_immediate = this._trx_immediate;
     }
-    if (trxImmediate) {
+    if (trx_immediate) {
       await connection.exec('BEGIN IMMEDIATE');
     }
     else {
