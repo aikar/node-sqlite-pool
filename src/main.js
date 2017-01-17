@@ -23,6 +23,7 @@ const defaults = {
   busyTimeout: 1000,
   foreignKeys: true,
   walMode: true,
+  loadExtensions: [],
 
   // pool defaults
   min: 1,
@@ -45,6 +46,7 @@ class Sqlite {
       busyTimeout,
       foreignKeys,
       walMode,
+      loadExtensions,
       min,
       max,
       trxImmediate,
@@ -62,6 +64,7 @@ class Sqlite {
     // Re-consolidate options
     this._pool_opts = { min, max, Promise, acquireTimeoutMillis: acquireTimeout };
     this._sqlite_opts = { filename, mode, busyTimeout, foreignKeys, walMode };
+    this._sqlite_ext = loadExtensions;
     this._trx_immediate = trxImmediate;
     this._delay_release = delayRelease;
     this.Promise = Promise;
@@ -102,6 +105,20 @@ class Sqlite {
         driver.configure('busyTimeout', options.busyTimeout);
       }
     });
+
+    // Load extensions
+    // Await each for consistency
+    for (const extension of this._sqlite_ext) {
+      let extensionPath = path.resolve(extension);
+      await new this.Promise((resolve, reject) => {
+        connection.driver.loadExtension(extensionPath, (err) => {
+          if (err) {
+            return reject(err);
+          }
+          return resolve();
+        });
+      });
+    }
 
     // Set foreign keys and/or WAL mode as appropriate
     if (options.foreignKeys) {
