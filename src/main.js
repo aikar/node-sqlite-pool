@@ -127,6 +127,11 @@ class Sqlite {
     }
   }
 
+  async close () {
+    await this._pool.drain();
+    await this._pool.clear();
+  }
+
   async exec (...args) {
     let connection = await this._pool.acquire();
 
