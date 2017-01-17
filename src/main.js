@@ -13,6 +13,7 @@ import sqlite3 from 'sqlite3';
 import genericPool from 'generic-pool';
 import Database from './Database';
 import Transaction from './Transaction';
+import { isThenable } from './utils';
 
 // Default options
 const defaults = {
@@ -128,7 +129,7 @@ class Sqlite {
 
     let result = await connection.exec(...args);
 
-    let release = this._release(connection);
+    this._release(connection);
 
     return result;
   }
@@ -138,7 +139,7 @@ class Sqlite {
 
     let result = await connection.run(...args);
 
-    let release = this._release(connection);
+    this._release(connection);
 
     return result;
   }
@@ -148,7 +149,7 @@ class Sqlite {
 
     let result = await connection.get(...args);
 
-    let release = this._release(connection);
+    this._release(connection);
 
     return result;
   }
@@ -158,7 +159,7 @@ class Sqlite {
 
     let result = await connection.all(...args);
 
-    let release = this._release(connection);
+    this._release(connection);
 
     return result;
   }
@@ -168,7 +169,39 @@ class Sqlite {
 
     let result = await connection.each(...args);
 
-    let release = this._release(connection);
+    this._release(connection);
+
+    return result;
+  }
+
+  async transaction (fn, trxImmediate) {
+    let connection = await this._pool.acquire();
+    let trx = new Transaction(connection, null);
+
+    // Begin transaction
+    if (trxImmediate === undefined) {
+      trxImmediate = this._trxImmediate;
+    }
+    await trx.begin(trxImmediate);
+
+    try {
+      // Pass connection to function
+      let result = fn(trx);
+
+      // If function didn't return a thenable, wait
+      if (!isThenable(result)) {
+        await trx.wait();
+      }
+
+      // Commit
+      await trx.commit();
+    }
+    catch (err) {
+      // Roll back, release connection, and re-throw
+      await trx.rollback();
+      this._release(connection);
+      throw err;
+    }
 
     return result;
   }
