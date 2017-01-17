@@ -220,6 +220,27 @@ class Sqlite {
     return result;
   }
 
+  async use (fn) {
+    let connection = await this._pool.acquire();
+    let result;
+    try {
+      // Pass connection to function
+      result = fn(connection);
+
+      // If function didn't return a thenable, wait
+      if (isThenable(result)) {
+        result = await result;
+      }
+      else {
+        await connection.wait();
+      }
+    }
+    finally {
+      this._release(connection);
+    }
+    return result;
+  }
+
   async transaction (fn, immediate = this.trxImmediate) {
     let connection = await this._pool.acquire();
     let result;
