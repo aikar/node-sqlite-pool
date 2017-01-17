@@ -13,4 +13,12 @@ function prepareParams(args, { offset = 0, excludeLastArg = false } = {}) {
   return Array.prototype.slice.call(args, offset, args.length - (excludeLastArg ? 1 : 0));
 }
 
-export default prepareParams;
+function isThenable (obj) {
+    return obj !== undefined &&
+           obj !== null &&
+           typeof obj === 'object' &&
+           'then' in obj &&
+           typeof obj.then === 'function';
+}
+
+export { prepareParams, isThenable };
