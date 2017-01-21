@@ -5,7 +5,7 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 
-function prepareParams(args, { offset = 0, excludeLastArg = false } = {}) {
+function prepareParams (args, { offset = 0, excludeLastArg = false } = {}) {
   const hasOneParam = (args.length === (offset + 1 + (excludeLastArg ? 1 : 0)));
   if (hasOneParam) {
     return args[offset];
@@ -14,11 +14,11 @@ function prepareParams(args, { offset = 0, excludeLastArg = false } = {}) {
 }
 
 function isThenable (obj) {
-    return obj !== undefined &&
-           obj !== null &&
-           typeof obj === 'object' &&
-           'then' in obj &&
-           typeof obj.then === 'function';
+  return obj !== undefined &&
+         obj !== null &&
+         typeof obj === 'object' &&
+         'then' in obj &&
+         typeof obj.then === 'function';
 }
 
 export { prepareParams, isThenable };

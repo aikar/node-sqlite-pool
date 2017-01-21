@@ -35,7 +35,7 @@ const defaults = {
   delayRelease: true,
 
   // general defaults
-  Promise: global.Promise
+  Promise: global.Promise,
 };
 
 class Sqlite {
@@ -52,7 +52,7 @@ class Sqlite {
       trxImmediate,
       delayRelease,
       acquireTimeout,
-      Promise
+      Promise,
     } = Object.assign({}, defaults, options);
 
     // Re-consolidate options
@@ -73,7 +73,7 @@ class Sqlite {
     this._pool_factory = {
       create: () => this._create(),
 
-      destroy: (connection) => this._destroy(connection)
+      destroy: connection => this._destroy(connection),
     };
 
     // Create pool
@@ -83,17 +83,17 @@ class Sqlite {
   async _create () {
     const Promise = this.Promise;
     const trxImmediate = this.trxImmediate;
+    const options = this._sqlite_opts;
 
     // Create database connection, wait until open complete
-    let connection = await new Promise((resolve, reject) => {
-      let options = this._sqlite_opts;
+    const connection = await new Promise((resolve, reject) => {
       let driver;
-      let callback = (err) => {
+      const callback = (err) => {
         if (err) {
           return reject(err);
         }
         return resolve(new Database(driver, { Promise, trxImmediate }));
-      }
+      };
 
       if (options.mode !== null) {
         driver = new sqlite3.Database(options.filename, options.mode, callback);
@@ -112,7 +112,7 @@ class Sqlite {
     // Load extensions
     // Await each for consistency
     for (const extension of this._sqlite_ext) {
-      let extensionPath = path.resolve(extension);
+      const extensionPath = path.resolve(extension);
       await new Promise((resolve, reject) => {
         connection.driver.loadExtension(extensionPath, (err) => {
           if (err) {
@@ -150,9 +150,7 @@ class Sqlite {
     if (this.delayRelease) {
       return setImmediate(() => this._pool.release(connection));
     }
-    else {
-      return this._pool.release(connection);
-    }
+    return this._pool.release(connection);
   }
 
   async close () {
@@ -161,7 +159,7 @@ class Sqlite {
   }
 
   async exec (...args) {
-    let connection = await this._pool.acquire();
+    const connection = await this._pool.acquire();
     try {
       await connection.exec(...args);
     }
@@ -171,7 +169,7 @@ class Sqlite {
   }
 
   async run (...args) {
-    let connection = await this._pool.acquire();
+    const connection = await this._pool.acquire();
     let result;
     try {
       result = await connection.run(...args);
@@ -183,7 +181,7 @@ class Sqlite {
   }
 
   async get (...args) {
-    let connection = await this._pool.acquire();
+    const connection = await this._pool.acquire();
     let result;
     try {
       result = await connection.get(...args);
@@ -195,7 +193,7 @@ class Sqlite {
   }
 
   async all (...args) {
-    let connection = await this._pool.acquire();
+    const connection = await this._pool.acquire();
     let result;
     try {
       result = await connection.all(...args);
@@ -207,7 +205,7 @@ class Sqlite {
   }
 
   async each (...args) {
-    let connection = await this._pool.acquire();
+    const connection = await this._pool.acquire();
     let result;
     try {
       result = await connection.each(...args);
@@ -219,7 +217,7 @@ class Sqlite {
   }
 
   async use (fn) {
-    let connection = await this._pool.acquire();
+    const connection = await this._pool.acquire();
     let result;
     try {
       // Pass connection to function
@@ -240,7 +238,7 @@ class Sqlite {
   }
 
   async transaction (fn, immediate = this.trxImmediate) {
-    let connection = await this._pool.acquire();
+    const connection = await this._pool.acquire();
     let result;
     try {
       result = await connection.transaction(fn, immediate);
@@ -254,7 +252,7 @@ class Sqlite {
   /**
    * Migrates database schema to the latest version
    */
-  async migrate({ force, table = 'migrations', migrationsPath = './migrations' } = {}) {
+  async migrate ({ force, table = 'migrations', migrationsPath = './migrations' } = {}) {
     const Promise = this.Promise;
     const location = path.resolve(migrationsPath);
 
@@ -327,8 +325,7 @@ class Sqlite {
       const lastMigration = migrations[migrations.length - 1];
       for (const migration of dbMigrations.slice().sort((a, b) => a.id < b.id)) {
         if (!migrations.some(x => x.id === migration.id) ||
-            (force === 'last' && migration.id === lastMigration.id))
-        {
+            (force === 'last' && migration.id === lastMigration.id)) {
           await conn.transaction(async (trx) => {
             await trx.exec(migration.down);
             await trx.run(`DELETE FROM "${table}" WHERE id = ?`, migration.id);

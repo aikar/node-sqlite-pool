@@ -31,7 +31,7 @@ class Database {
     }
 
     return new Promise((resolve, reject) => {
-      this.driver.run(sql, params, function runExecResult(err) {
+      this.driver.run(sql, params, function runExecResult (err) {
         if (err) {
           reject(err);
         }
