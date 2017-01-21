@@ -55,12 +55,6 @@ class Sqlite {
       Promise
     } = Object.assign({}, defaults, options);
 
-    // Special case for anonymous or in-memory database
-    if (filename === '' || filename === ':memory:') {
-      min = 1;
-      max = 1;
-    }
-
     // Re-consolidate options
     this._pool_opts = { min, max, Promise, acquireTimeoutMillis: acquireTimeout };
     this._sqlite_opts = { filename, mode, busyTimeout, foreignKeys, walMode };
@@ -68,6 +62,12 @@ class Sqlite {
     this.trxImmediate = trxImmediate;
     this.delayRelease = delayRelease;
     this.Promise = Promise;
+
+    // Special case min/max for anonymous or in-memory database
+    if (filename === '' || filename === ':memory:') {
+      this._pool_opts.min = 1;
+      this._pool_opts.max = 1;
+    }
 
     // Factory functions for generic-pool
     this._pool_factory = {
