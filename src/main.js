@@ -172,12 +172,14 @@ class Sqlite {
 
   async run (...args) {
     let connection = await this._pool.acquire();
+    let result;
     try {
-      await connection.run(...args);
+      result = await connection.run(...args);
     }
     finally {
       this._release(connection);
     }
+    return result;
   }
 
   async get (...args) {
