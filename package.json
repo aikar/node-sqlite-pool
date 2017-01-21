@@ -48,8 +48,17 @@
     "extends": "airbnb-base",
     "rules": {
       "no-restricted-syntax": "off",
-      "prefer-rest-params": "off",
-      "import/no-extraneous-dependencies": "off"
+      "import/no-extraneous-dependencies": "off",
+      "no-underscore-dangle": ["error", { "allowAfterThis": true }],
+      "brace-style": ["error", "stroustrup"],
+      "space-before-function-paren": ["error", "always"],
+      "comma-dangle": ["error", {
+        "arrays": "always-multiline",
+        "objects": "always-multiline",
+        "imports": "always-multiline",
+        "exports": "always-multiline",
+        "functions": "ignore"
+      }]
     }
   },
   "dependencies": {
