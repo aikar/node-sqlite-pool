@@ -55,8 +55,8 @@ class Sqlite {
       Promise
     } = Object.assign({}, defaults, options);
 
-    // Special case for in-memory database
-    if (filename === ':memory:') {
+    // Special case for anonymous or in-memory database
+    if (filename === '' || filename === ':memory:') {
       min = 1;
       max = 1;
     }
