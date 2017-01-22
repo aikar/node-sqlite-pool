@@ -8,7 +8,7 @@
  */
 
 import Statement from './Statement';
-import { isThenable } from './utils';
+import { prepareParams, isThenable } from './utils';
 
 class Database {
 
@@ -23,12 +23,9 @@ class Database {
     this.trxImmediate = trxImmediate;
   }
 
-  run (sql, ...params) {
+  run (sql, ...args) {
     const Promise = this.Promise;
-
-    if (params.length === 1) {
-      params = params[0];
-    }
+    const params = prepareParams(args);
 
     return new Promise((resolve, reject) => {
       this.driver.run(sql, params, function runExecResult (err) {
@@ -45,10 +42,8 @@ class Database {
     });
   }
 
-  get (sql, ...params) {
-    if (params.length === 1) {
-      params = params[0];
-    }
+  get (sql, ...args) {
+    const params = prepareParams(args);
 
     return new this.Promise((resolve, reject) => {
       this.driver.get(sql, params, (err, row) => {
@@ -62,10 +57,8 @@ class Database {
     });
   }
 
-  all (sql, ...params) {
-    if (params.length === 1) {
-      params = params[0];
-    }
+  all (sql, ...args) {
+    const params = prepareParams(args);
 
     return new this.Promise((resolve, reject) => {
       this.driver.all(sql, params, (err, rows) => {
@@ -95,11 +88,8 @@ class Database {
     });
   }
 
-  each (sql, ...params) {
-    const callback = params.pop();
-    if (params.length === 1) {
-      params = params[0];
-    }
+  each (sql, ...args) {
+    const [params, callback] = prepareParams(args, true);
 
     return new this.Promise((resolve, reject) => {
       this.driver.each(sql, params, callback, (err, rowsCount = 0) => {
@@ -113,10 +103,8 @@ class Database {
     });
   }
 
-  prepare (sql, ...params) {
-    if (params.length === 1) {
-      params = params[0];
-    }
+  prepare (sql, ...args) {
+    const params = prepareParams(args);
 
     return new this.Promise((resolve, reject) => {
       const stmt = this.driver.prepare(sql, params, (err) => {
