@@ -5,12 +5,17 @@
  * LICENSE.txt file in the root directory of this source tree.
  */
 
-function prepareParams (args, { offset = 0, excludeLastArg = false } = {}) {
-  const hasOneParam = (args.length === (offset + 1 + (excludeLastArg ? 1 : 0)));
-  if (hasOneParam) {
-    return args[offset];
+function prepareParams (args, requireCallback = false) {
+  if (requireCallback) {
+    if (args.length < 1) {
+      throw new Error('Callback argument is required');
+    }
+
+    const callback = args.pop();
+    return [args, callback];
   }
-  return Array.prototype.slice.call(args, offset, args.length - (excludeLastArg ? 1 : 0));
+
+  return args.length === 1 ? args[0] : args;
 }
 
 function isThenable (obj) {
