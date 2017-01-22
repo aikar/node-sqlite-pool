@@ -6,16 +6,15 @@
  */
 
 function prepareParams (args, requireCallback = false) {
+  let callback;
   if (requireCallback) {
     if (args.length < 1) {
       throw new Error('Callback argument is required');
     }
-
-    const callback = args.pop();
-    return [args, callback];
+    callback = args.pop();
   }
-
-  return args.length === 1 ? args[0] : args;
+  const params = args.length === 1 ? args[0] : args;
+  return callback ? [params, callback] : params;
 }
 
 function isThenable (obj) {
