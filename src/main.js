@@ -14,7 +14,7 @@ import path from 'path';
 import sqlite3 from 'sqlite3';
 import genericPool from 'generic-pool';
 import Database from './Database';
-import { isThenable } from './utils';
+import { isThenable, asyncRunner } from './utils';
 
 // Default options
 const defaults = {
@@ -63,6 +63,9 @@ class Sqlite {
     this.delayRelease = delayRelease;
     this.Promise = Promise;
 
+    // Async runner
+    this._run_async = asyncRunner(Promise);
+
     // Special case min/max for anonymous or in-memory database
     if (filename === '' || filename === ':memory:') {
       this._pool_opts.min = 1;
@@ -80,59 +83,61 @@ class Sqlite {
     this._pool = genericPool.createPool(this._pool_factory, this._pool_opts);
   }
 
-  async _create () {
-    const Promise = this.Promise;
-    const trxImmediate = this.trxImmediate;
-    const options = this._sqlite_opts;
+  _create () {
+    return this._run_async(function* _createAsync () {
+      const Promise = this.Promise;
+      const trxImmediate = this.trxImmediate;
+      const options = this._sqlite_opts;
 
-    // Create database connection, wait until open complete
-    const connection = await new Promise((resolve, reject) => {
-      let driver;
-      const callback = (err) => {
-        if (err) {
-          return reject(err);
-        }
-        return resolve(new Database(driver, { Promise, trxImmediate }));
-      };
-
-      if (options.mode !== null) {
-        driver = new sqlite3.Database(options.filename, options.mode, callback);
-      }
-      else {
-        driver = new sqlite3.Database(options.filename, callback);
-      }
-
-      // Busy timeout default hardcoded to 1000ms, so
-      // only configure if a different value given
-      if (options.busyTimeout !== 1000) {
-        driver.configure('busyTimeout', options.busyTimeout);
-      }
-    });
-
-    // Load extensions
-    // Await each for consistency
-    for (const extension of this._sqlite_ext) {
-      const extensionPath = path.resolve(extension);
-      await new Promise((resolve, reject) => {
-        connection.driver.loadExtension(extensionPath, (err) => {
+      // Create database connection, wait until open complete
+      const connection = yield new Promise((resolve, reject) => {
+        let driver;
+        const callback = (err) => {
           if (err) {
             return reject(err);
           }
-          return resolve();
-        });
+          return resolve(new Database(driver, { Promise, trxImmediate }));
+        };
+
+        if (options.mode !== null) {
+          driver = new sqlite3.Database(options.filename, options.mode, callback);
+        }
+        else {
+          driver = new sqlite3.Database(options.filename, callback);
+        }
+
+        // Busy timeout default hardcoded to 1000ms, so
+        // only configure if a different value given
+        if (options.busyTimeout !== 1000) {
+          driver.configure('busyTimeout', options.busyTimeout);
+        }
       });
-    }
 
-    // Set foreign keys and/or WAL mode as appropriate
-    if (options.foreignKeys) {
-      await connection.exec('PRAGMA foreign_keys = ON;');
-    }
-    if (options.walMode) {
-      await connection.exec('PRAGMA journal_mode = WAL;');
-    }
+      // Load extensions
+      // Await each for consistency
+      for (const extension of this._sqlite_ext) {
+        const extensionPath = path.resolve(extension);
+        yield new Promise((resolve, reject) => {
+          connection.driver.loadExtension(extensionPath, (err) => {
+            if (err) {
+              return reject(err);
+            }
+            return resolve();
+          });
+        });
+      }
 
-    // Return now-configured db connection
-    return connection;
+      // Set foreign keys and/or WAL mode as appropriate
+      if (options.foreignKeys) {
+        yield connection.exec('PRAGMA foreign_keys = ON;');
+      }
+      if (options.walMode) {
+        yield connection.exec('PRAGMA journal_mode = WAL;');
+      }
+
+      // Return now-configured db connection
+      return connection;
+    });
   }
 
   _destroy (connection) {
