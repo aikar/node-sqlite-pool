@@ -158,9 +158,11 @@ class Sqlite {
     return this._pool.release(connection);
   }
 
-  async close () {
-    await this._pool.drain();
-    await this._pool.clear();
+  close () {
+    return this._run_async(function* closeAsync () {
+      yield this._pool.drain();
+      yield this._pool.clear();
+    });
   }
 
   async exec (...args) {
