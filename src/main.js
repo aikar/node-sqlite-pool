@@ -180,15 +180,7 @@ class Sqlite {
   }
 
   exec (...args) {
-    return this.async(function* execAsync () {
-      const connection = yield this._pool.acquire();
-      try {
-        yield connection.exec(...args);
-      }
-      finally {
-        this._release(connection);
-      }
-    });
+    return this._acquireRelease(conn => conn.exec(...args)).then(() => {});
   }
 
   run (...args) {
