@@ -165,14 +165,16 @@ class Sqlite {
     });
   }
 
-  async exec (...args) {
-    const connection = await this._pool.acquire();
-    try {
-      await connection.exec(...args);
-    }
-    finally {
-      this._release(connection);
-    }
+  exec (...args) {
+    return this.async(function* execAsync () {
+      const connection = yield this._pool.acquire();
+      try {
+        yield connection.exec(...args);
+      }
+      finally {
+        this._release(connection);
+      }
+    });
   }
 
   async run (...args) {
