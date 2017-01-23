@@ -8,7 +8,7 @@
  */
 
 import Statement from './Statement';
-import { prepareParams, isThenable } from './utils';
+import { prepareParams, isThenable, asyncRunner } from './utils';
 
 class Database {
 
@@ -21,6 +21,7 @@ class Database {
     this.driver = driver;
     this.Promise = Promise;
     this.trxImmediate = trxImmediate;
+    this.async = asyncRunner(Promise);
   }
 
   run (sql, ...args) {
@@ -131,38 +132,40 @@ class Database {
     });
   }
 
-  async transaction (fn, immediate = this.trxImmediate) {
-    // Begin transaction
-    if (immediate) {
-      await this.exec('BEGIN IMMEDIATE');
-    }
-    else {
-      await this.exec('BEGIN');
-    }
-
-    let result;
-    try {
-      // Pass connection to function
-      result = fn(this);
-
-      // If function didn't return a thenable, wait
-      if (isThenable(result)) {
-        result = await result;
+  transaction (fn, immediate = this.trxImmediate) {
+    return this.async(function* trxAsync () {
+      // Begin transaction
+      if (immediate) {
+        yield this.exec('BEGIN IMMEDIATE');
       }
       else {
-        await this.wait();
+        yield this.exec('BEGIN');
       }
 
-      // Commit
-      await this.exec('COMMIT');
-    }
-    catch (err) {
-      // Roll back, release connection, and re-throw
-      await this.exec('ROLLBACK');
-      throw err;
-    }
+      let result;
+      try {
+        // Pass connection to function
+        result = fn(this);
 
-    return result;
+        // If function didn't return a thenable, wait
+        if (isThenable(result)) {
+          result = yield result;
+        }
+        else {
+          yield this.wait();
+        }
+
+        // Commit
+        yield this.exec('COMMIT');
+      }
+      catch (err) {
+        // Roll back, release connection, and re-throw
+        yield this.exec('ROLLBACK');
+        throw err;
+      }
+
+      return result;
+    });
   }
 
 }
