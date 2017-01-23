@@ -8,7 +8,7 @@
  */
 
 import Statement from './Statement';
-import { prepareParams, isThenable, asyncRunner } from './utils';
+import { prepareParams, asyncRunner } from './utils';
 
 class Database {
 
@@ -133,7 +133,15 @@ class Database {
   }
 
   transaction (fn, immediate = this.trxImmediate) {
-    return this.async(function* _trxAsync () {
+    return this._trxWrap(fn, immediate);
+  }
+
+  transactionAsync (gen, immediate = this.trxImmediate) {
+    return this._trxWrap(gen, immediate, true);
+  }
+
+  _trxWrap (fn, immediate, async = false) {
+    return this.async(function* _trxWrapAsync () {
       // Begin transaction
       if (immediate) {
         yield this.exec('BEGIN IMMEDIATE');
@@ -145,15 +153,7 @@ class Database {
       let result;
       try {
         // Pass connection to function
-        result = fn(this);
-
-        // If function didn't return a thenable, wait
-        if (isThenable(result)) {
-          result = yield result;
-        }
-        else {
-          yield this.wait();
-        }
+        result = yield async ? this.async(fn, this) : fn.call(this, this);
 
         // Commit
         yield this.exec('COMMIT');

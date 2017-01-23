@@ -158,12 +158,19 @@ class Sqlite {
     return this._pool.release(connection);
   }
 
-  _acquireRelease (fn) {
+  _acquireRelease (fn, async = false) {
     return this.async(function* _acquireReleaseAsync () {
       const connection = yield this._pool.acquire();
       let result;
       try {
-        result = yield fn.call(this, connection);
+        if (async) {
+          // Run fn as async (generator)
+          result = yield this.async(fn, connection);
+        }
+        else {
+          // Pass connection to function
+          result = yield fn.call(this, connection);
+        }
       }
       finally {
         this._release(connection);
@@ -212,8 +219,16 @@ class Sqlite {
     });
   }
 
+  useAsync (gen) {
+    return this._acquireRelease(gen, true);
+  }
+
   transaction (fn, immediate = this.trxImmediate) {
     return this._acquireRelease(conn => conn.transaction(fn, immediate));
+  }
+
+  transactionAsync (gen, immediate = this.trxImmediate) {
+    return this._acquireRelease(conn => conn.transactionAsync(gen, immediate));
   }
 
   /**
@@ -274,7 +289,7 @@ class Sqlite {
         });
       })));
 
-      yield this.use(conn => conn.async(function* _runMigrationsAsync () {
+      yield this.useAsync(function* _runMigrationsAsync (conn) {
         // Create a database table for migrations meta data if it doesn't exist
         yield conn.run(`CREATE TABLE IF NOT EXISTS "${table}" (
     id   INTEGER PRIMARY KEY,
@@ -295,10 +310,10 @@ class Sqlite {
         for (const migration of prevMigrations) {
           if (!migrations.some(x => x.id === migration.id) ||
               (force === 'last' && migration.id === lastMigration.id)) {
-            yield conn.transaction(trx => trx.async(function* _downAsync () {
+            yield conn.transactionAsync(function* _downAsync (trx) {
               yield trx.exec(migration.down);
               yield trx.run(`DELETE FROM "${table}" WHERE id = ?`, migration.id);
-            }));
+            });
             dbMigrations = dbMigrations.filter(x => x.id !== migration.id);
           }
           else {
@@ -312,16 +327,16 @@ class Sqlite {
                               : 0;
         for (const migration of migrations) {
           if (migration.id > lastMigrationId) {
-            yield conn.transaction(trx => trx.async(function* _upAsync () {
+            yield conn.transactionAsync(function* _upAsync (trx) {
               yield trx.exec(migration.up);
               yield trx.run(
                 `INSERT INTO "${table}" (id, name, up, down) VALUES (?, ?, ?, ?)`,
                 migration.id, migration.name, migration.up, migration.down
               );
-            }));
+            });
           }
         }
-      }));
+      });
 
       return this;
     });
