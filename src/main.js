@@ -64,7 +64,7 @@ class Sqlite {
     this.Promise = Promise;
 
     // Async runner
-    this._run_async = asyncRunner(Promise);
+    this.async = asyncRunner(Promise);
 
     // Special case min/max for anonymous or in-memory database
     if (filename === '' || filename === ':memory:') {
@@ -84,7 +84,7 @@ class Sqlite {
   }
 
   _create () {
-    return this._run_async(function* _createAsync () {
+    return this.async(function* _createAsync () {
       const Promise = this.Promise;
       const trxImmediate = this.trxImmediate;
       const options = this._sqlite_opts;
@@ -159,7 +159,7 @@ class Sqlite {
   }
 
   close () {
-    return this._run_async(function* closeAsync () {
+    return this.async(function* closeAsync () {
       yield this._pool.drain();
       yield this._pool.clear();
     });
