@@ -25,4 +25,35 @@ function isThenable (obj) {
          typeof obj.then === 'function';
 }
 
-export { prepareParams, isThenable };
+function asyncRunner (Promise = global.Promise) {
+  return function runAsync (fn, ...args) {
+    const gen = fn.apply(this, args);
+    return new Promise((resolve, reject) => {
+      function step (key, arg) {
+        let info;
+        let value;
+
+        try {
+          info = gen[key](arg);
+          value = info.value;
+        }
+        catch (error) {
+          return reject(error);
+        }
+
+        if (info.done) {
+          return resolve(value);
+        }
+        return Promise.resolve(value).then((val) => {
+          step('next', val);
+        }, (err) => {
+          step('throw', err);
+        });
+      }
+
+      return step('next');
+    });
+  };
+}
+
+export { prepareParams, isThenable, asyncRunner };

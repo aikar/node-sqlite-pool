@@ -36,7 +36,6 @@ for (const file of files) {
         exclude: 'node_modules/**',
         presets: file.presets,
         plugins: [
-          'transform-async-to-generator',
           'external-helpers',
         ],
       })),
