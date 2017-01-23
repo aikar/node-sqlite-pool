@@ -158,6 +158,20 @@ class Sqlite {
     return this._pool.release(connection);
   }
 
+  _acquireRelease (fn) {
+    return this.async(function* _acquireReleaseAsync () {
+      const connection = yield this._pool.acquire();
+      let result;
+      try {
+        result = yield fn.call(this, connection);
+      }
+      finally {
+        this._release(connection);
+      }
+      return result;
+    });
+  }
+
   close () {
     return this.async(function* closeAsync () {
       yield this._pool.drain();
@@ -177,193 +191,148 @@ class Sqlite {
     });
   }
 
-  async run (...args) {
-    const connection = await this._pool.acquire();
-    let result;
-    try {
-      result = await connection.run(...args);
-    }
-    finally {
-      this._release(connection);
-    }
-    return result;
+  run (...args) {
+    return this._acquireRelease(conn => conn.run(...args));
   }
 
-  async get (...args) {
-    const connection = await this._pool.acquire();
-    let result;
-    try {
-      result = await connection.get(...args);
-    }
-    finally {
-      this._release(connection);
-    }
-    return result;
+  get (...args) {
+    return this._acquireRelease(conn => conn.get(...args));
   }
 
-  async all (...args) {
-    const connection = await this._pool.acquire();
-    let result;
-    try {
-      result = await connection.all(...args);
-    }
-    finally {
-      this._release(connection);
-    }
-    return result;
+  all (...args) {
+    return this._acquireRelease(conn => conn.all(...args));
   }
 
-  async each (...args) {
-    const connection = await this._pool.acquire();
-    let result;
-    try {
-      result = await connection.each(...args);
-    }
-    finally {
-      this._release(connection);
-    }
-    return result;
+  each (...args) {
+    return this._acquireRelease(conn => conn.each(...args));
   }
 
-  async use (fn) {
-    const connection = await this._pool.acquire();
-    let result;
-    try {
+  use (fn) {
+    return this._acquireRelease((conn) => {
       // Pass connection to function
-      result = fn(connection);
+      const result = fn.call(this, conn);
 
       // If function didn't return a thenable, wait
       if (isThenable(result)) {
-        result = await result;
+        return result;
       }
-      else {
-        await connection.wait();
-      }
-    }
-    finally {
-      this._release(connection);
-    }
-    return result;
+      return conn.wait().then(() => result);
+    });
   }
 
-  async transaction (fn, immediate = this.trxImmediate) {
-    const connection = await this._pool.acquire();
-    let result;
-    try {
-      result = await connection.transaction(fn, immediate);
-    }
-    finally {
-      this._release(connection);
-    }
-    return result;
+  transaction (fn, immediate = this.trxImmediate) {
+    return this._acquireRelease(conn => conn.transaction(fn, immediate));
   }
 
   /**
    * Migrates database schema to the latest version
    */
-  async migrate ({ force, table = 'migrations', migrationsPath = './migrations' } = {}) {
-    const Promise = this.Promise;
-    const location = path.resolve(migrationsPath);
+  migrate ({ force, table = 'migrations', migrationsPath = './migrations' } = {}) {
+    return this.async(function* migrateAsync () {
+      const Promise = this.Promise;
+      const location = path.resolve(migrationsPath);
 
-    // Get the list of migration files, for example:
-    //   { id: 1, name: 'initial', filename: '001-initial.sql' }
-    //   { id: 2, name: 'feature', fielname: '002-feature.sql' }
-    const migrations = await new Promise((resolve, reject) => {
-      fs.readdir(location, (err, files) => {
-        if (err) {
-          reject(err);
-        }
-        else {
-          resolve(files
-            .map(x => x.match(/^(\d+).(.*?)\.sql$/))
-            .filter(x => x !== null)
-            .map(x => ({ id: Number(x[1]), name: x[2], filename: x[0] }))
-            .sort((a, b) => a.id > b.id));
-        }
-      });
-    });
-
-    if (!migrations.length) {
-      throw new Error(`No migration files found in '${location}'.`);
-    }
-
-    // Get the list of migrations, for example:
-    // { id: 1, name: 'initial', filename: '001-initial.sql', up: ..., down: ... }
-    // { id: 2, name: 'feature', fielname: '002-feature.sql', up: ..., down: ... }
-    await Promise.all(migrations.map(migration => new Promise((resolve, reject) => {
-      const filename = path.join(location, migration.filename);
-      fs.readFile(filename, 'utf-8', (err, data) => {
-        if (err) {
-          reject(err);
-        }
-        else {
-          const [up, down] = data.split(/^--\s+?down/mi);
-          if (!down) {
-            reject(new Error(
-              `The file ${migration.filename} is missing a '-- Down' separator.`
-            ));
+      // Get the list of migration files, for example:
+      //   { id: 1, name: 'initial', filename: '001-initial.sql' }
+      //   { id: 2, name: 'feature', fielname: '002-feature.sql' }
+      const migrations = yield new Promise((resolve, reject) => {
+        fs.readdir(location, (err, files) => {
+          if (err) {
+            reject(err);
           }
           else {
-            // Remove comments and trim whitespaces
-            /* eslint-disable no-param-reassign */
-            migration.up = up.replace(/^--.*?$/gm, '').trim();
-            migration.down = down.replace(/^--.*?$/gm, '').trim();
-            /* eslint-enable no-param-reassign */
-            resolve();
+            resolve(files
+              .map(x => x.match(/^(\d+).(.*?)\.sql$/))
+              .filter(x => x !== null)
+              .map(x => ({ id: Number(x[1]), name: x[2], filename: x[0] }))
+              .sort((a, b) => a.id > b.id));
+          }
+        });
+      });
+
+      if (!migrations.length) {
+        throw new Error(`No migration files found in '${location}'.`);
+      }
+
+      // Get the list of migrations, for example:
+      // { id: 1, name: 'initial', filename: '001-initial.sql', up: ..., down: ... }
+      // { id: 2, name: 'feature', fielname: '002-feature.sql', up: ..., down: ... }
+      yield Promise.all(migrations.map(migration => new Promise((resolve, reject) => {
+        const filename = path.join(location, migration.filename);
+        fs.readFile(filename, 'utf-8', (err, data) => {
+          if (err) {
+            reject(err);
+          }
+          else {
+            const [up, down] = data.split(/^--\s+?down/mi);
+            if (!down) {
+              reject(new Error(
+                `The file ${migration.filename} is missing a '-- Down' separator.`
+              ));
+            }
+            else {
+              // Remove comments and trim whitespaces
+              /* eslint-disable no-param-reassign */
+              migration.up = up.replace(/^--.*?$/gm, '').trim();
+              migration.down = down.replace(/^--.*?$/gm, '').trim();
+              /* eslint-enable no-param-reassign */
+              resolve();
+            }
+          }
+        });
+      })));
+
+      yield this.use(conn => this.async(function* runMigrationsAsync () {
+        // Create a database table for migrations meta data if it doesn't exist
+        yield conn.run(`CREATE TABLE IF NOT EXISTS "${table}" (
+    id   INTEGER PRIMARY KEY,
+    name TEXT    NOT NULL,
+    up   TEXT    NOT NULL,
+    down TEXT    NOT NULL
+  )`);
+
+        // Get the list of already applied migrations
+        let dbMigrations = yield conn.all(
+          `SELECT id, name, up, down FROM "${table}" ORDER BY id ASC`,
+        );
+
+        // Undo migrations that exist only in the database but not in files,
+        // also undo the last migration if the `force` option was set to `last`.
+        const lastMigration = migrations[migrations.length - 1];
+        const prevMigrations = dbMigrations.slice().sort((a, b) => a.id < b.id);
+        for (const migration of prevMigrations) {
+          if (!migrations.some(x => x.id === migration.id) ||
+              (force === 'last' && migration.id === lastMigration.id)) {
+            yield conn.transaction(trx => this.async(function* downAsync () {
+              yield trx.exec(migration.down);
+              yield trx.run(`DELETE FROM "${table}" WHERE id = ?`, migration.id);
+            }));
+            dbMigrations = dbMigrations.filter(x => x.id !== migration.id);
+          }
+          else {
+            break;
           }
         }
-      });
-    })));
 
-    await this.use(async (conn) => {
-      // Create a database table for migrations meta data if it doesn't exist
-      await conn.run(`CREATE TABLE IF NOT EXISTS "${table}" (
-  id   INTEGER PRIMARY KEY,
-  name TEXT    NOT NULL,
-  up   TEXT    NOT NULL,
-  down TEXT    NOT NULL
-)`);
-
-      // Get the list of already applied migrations
-      let dbMigrations = await conn.all(
-        `SELECT id, name, up, down FROM "${table}" ORDER BY id ASC`,
-      );
-
-      // Undo migrations that exist only in the database but not in files,
-      // also undo the last migration if the `force` option was set to `last`.
-      const lastMigration = migrations[migrations.length - 1];
-      for (const migration of dbMigrations.slice().sort((a, b) => a.id < b.id)) {
-        if (!migrations.some(x => x.id === migration.id) ||
-            (force === 'last' && migration.id === lastMigration.id)) {
-          await conn.transaction(async (trx) => {
-            await trx.exec(migration.down);
-            await trx.run(`DELETE FROM "${table}" WHERE id = ?`, migration.id);
-          });
-          dbMigrations = dbMigrations.filter(x => x.id !== migration.id);
+        // Apply pending migrations
+        const lastMigrationId = dbMigrations.length
+                              ? dbMigrations[dbMigrations.length - 1].id
+                              : 0;
+        for (const migration of migrations) {
+          if (migration.id > lastMigrationId) {
+            yield conn.transaction(trx => this.async(function* upAsync () {
+              yield trx.exec(migration.up);
+              yield trx.run(
+                `INSERT INTO "${table}" (id, name, up, down) VALUES (?, ?, ?, ?)`,
+                migration.id, migration.name, migration.up, migration.down
+              );
+            }));
+          }
         }
-        else {
-          break;
-        }
-      }
+      }));
 
-      // Apply pending migrations
-      const lastMigrationId = dbMigrations.length
-                            ? dbMigrations[dbMigrations.length - 1].id
-                            : 0;
-      for (const migration of migrations) {
-        if (migration.id > lastMigrationId) {
-          await conn.transaction(async (trx) => {
-            await trx.exec(migration.up);
-            await trx.run(
-              `INSERT INTO "${table}" (id, name, up, down) VALUES (?, ?, ?, ?)`,
-              migration.id, migration.name, migration.up, migration.down
-            );
-          });
-        }
-      }
+      return this;
     });
-
-    return this;
   }
 }
 
