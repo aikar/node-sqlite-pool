@@ -212,10 +212,7 @@ class Sqlite {
       const result = fn.call(this, conn);
 
       // If function didn't return a thenable, wait
-      if (isThenable(result)) {
-        return result;
-      }
-      return conn.wait().then(() => result);
+      return isThenable(result) ? result : conn.wait().then(() => result);
     });
   }
 
