@@ -133,7 +133,7 @@ class Database {
   }
 
   transaction (fn, immediate = this.trxImmediate) {
-    return this.async(function* trxAsync () {
+    return this.async(function* _trxAsync () {
       // Begin transaction
       if (immediate) {
         yield this.exec('BEGIN IMMEDIATE');
