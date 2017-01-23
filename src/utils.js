@@ -27,31 +27,31 @@ function isThenable (obj) {
 
 function asyncRunner (Promise = global.Promise) {
   return function runAsync (fn, ...args) {
-    var gen = fn.apply(this, args);
+    const gen = fn.apply(this, args);
     return new Promise((resolve, reject) => {
-      function step(key, arg) {
+      function step (key, arg) {
+        let info;
+        let value;
+
         try {
-          var info = gen[key](arg);
-          var value = info.value;
+          info = gen[key](arg);
+          value = info.value;
         }
         catch (error) {
-          reject(error);
-          return;
+          return reject(error);
         }
 
         if (info.done) {
-          resolve(value);
+          return resolve(value);
         }
-        else {
-          return Promise.resolve(value).then((value) => {
-            step("next", value);
-          }, (err) => {
-            step("throw", err);
-          });
-        }
+        return Promise.resolve(value).then((val) => {
+          step('next', val);
+        }, (err) => {
+          step('throw', err);
+        });
       }
 
-      return step("next");
+      return step('next');
     });
   };
 }
