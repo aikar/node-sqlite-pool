@@ -282,7 +282,7 @@ class Sqlite {
         });
       })));
 
-      yield this.use(conn => this.async(function* runMigrationsAsync () {
+      yield this.use(conn => conn.async(function* runMigrationsAsync () {
         // Create a database table for migrations meta data if it doesn't exist
         yield conn.run(`CREATE TABLE IF NOT EXISTS "${table}" (
     id   INTEGER PRIMARY KEY,
@@ -303,7 +303,7 @@ class Sqlite {
         for (const migration of prevMigrations) {
           if (!migrations.some(x => x.id === migration.id) ||
               (force === 'last' && migration.id === lastMigration.id)) {
-            yield conn.transaction(trx => this.async(function* downAsync () {
+            yield conn.transaction(trx => trx.async(function* downAsync () {
               yield trx.exec(migration.down);
               yield trx.run(`DELETE FROM "${table}" WHERE id = ?`, migration.id);
             }));
@@ -320,7 +320,7 @@ class Sqlite {
                               : 0;
         for (const migration of migrations) {
           if (migration.id > lastMigrationId) {
-            yield conn.transaction(trx => this.async(function* upAsync () {
+            yield conn.transaction(trx => trx.async(function* upAsync () {
               yield trx.exec(migration.up);
               yield trx.run(
                 `INSERT INTO "${table}" (id, name, up, down) VALUES (?, ?, ?, ?)`,
