@@ -35,8 +35,7 @@
   ],
   "license": "MIT",
   "main": "main.js",
-  "jsnext:main": "main.mjs",
-  "types": "main.d.ts",
+  "jsnext:main": "main.es6.js",
   "babel": {
     "plugins": [
       "transform-es2015-modules-commonjs"

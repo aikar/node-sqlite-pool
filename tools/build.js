@@ -19,7 +19,7 @@ const pkg = require('../package.json');
 // The source files to be compiled by Rollup
 const files = [
   { format: 'cjs', ext: '.js' },
-  { format: 'es', ext: '.mjs' },
+  { format: 'es', ext: '.es6.js' },
   { format: 'cjs', ext: '.js', presets: [['es2015', { modules: false }]], output: 'legacy' },
 ];
 
@@ -31,7 +31,7 @@ promise = promise.then(() => del(['build/*']));
 // Compile source code into a distributable format with Babel
 for (const file of files) {
   promise = promise.then(() => rollup.rollup({
-    entry: 'src/main.js',
+    entry: 'src/Sqlite.js',
     external: Object.keys(pkg.dependencies),
     plugins: [
       babel(Object.assign(pkg.babel, {
@@ -58,7 +58,7 @@ promise = promise.then(() => {
   delete pkg.eslintConfig;
   delete pkg.babel;
   fs.writeFileSync('build/package.json', JSON.stringify(pkg, null, '  '), 'utf-8');
-  fs.writeFileSync('build/main.d.ts', fs.readFileSync('src/main.d.ts', 'utf-8'), 'utf-8');
+  // fs.writeFileSync('build/main.d.ts', fs.readFileSync('src/main.d.ts', 'utf-8'), 'utf-8');
   fs.writeFileSync('build/LICENSE.txt', fs.readFileSync('LICENSE.txt', 'utf-8'), 'utf-8');
   fs.writeFileSync('build/README.md', fs.readFileSync('README.md', 'utf-8'), 'utf-8');
 });
