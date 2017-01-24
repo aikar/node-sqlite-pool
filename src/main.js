@@ -159,12 +159,12 @@ class Sqlite {
     return this._pool.release(connection);
   }
 
-  _acquireRelease (fn, async = false) {
+  _acquireRelease (fn, isAsync = false) {
     return this.async(function* _acquireReleaseAsync () {
       const connection = yield this._pool.acquire();
       let result;
       try {
-        if (async) {
+        if (isAsync) {
           // Run fn as async (generator)
           result = yield this.async(fn, connection);
         }

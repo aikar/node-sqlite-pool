@@ -143,7 +143,7 @@ class Database {
     return this._trxWrap(gen, immediate, true);
   }
 
-  _trxWrap (fn, immediate, async = false) {
+  _trxWrap (fn, immediate, isAsync = false) {
     return this.async(function* _trxWrapAsync () {
       // Begin transaction
       if (immediate) {
@@ -156,7 +156,7 @@ class Database {
       let result;
       try {
         // Pass connection to function
-        result = yield async ? this.async(fn, this) : fn.call(this, this);
+        result = yield isAsync ? this.async(fn, this) : fn.call(this, this);
 
         // Commit
         yield this.exec('COMMIT');
