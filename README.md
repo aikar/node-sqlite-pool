@@ -109,16 +109,30 @@ as the following example demonstrates:
 
 ```sql
 -- Up
-CREATE TABLE Category (id INTEGER PRIMARY KEY, name TEXT);
-CREATE TABLE Post (id INTEGER PRIMARY KEY, categoryId INTEGER, title TEXT,
+
+CREATE TABLE Category (
+  id   INTEGER PRIMARY KEY,
+  name TEXT    NOT NULL
+);
+
+CREATE TABLE Post (
+  id          INTEGER PRIMARY KEY,
+  categoryId  INTEGER NOT NULL,
+  title       TEXT    NOT NULL,
+  views       NUMERIC NOT NULL DEFAULT 0,
+  isPublished NUMERIC NOT NULL DEFAULT 0,
   CONSTRAINT Post_fk_categoryId FOREIGN KEY (categoryId)
-    REFERENCES Category (id) ON UPDATE CASCADE ON DELETE CASCADE);
+    REFERENCES Category (id) ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT Post_ck_isPublished CHECK (isPublished IN (0, 1))
+);
+
 INSERT INTO Category (id, name) VALUES (1, 'Business');
 INSERT INTO Category (id, name) VALUES (2, 'Technology');
 
 -- Down
-DROP TABLE Category
+
 DROP TABLE Post;
+DROP TABLE Category;
 ```
 
 ##### `migrations/002-missing-index.sql`

@@ -11,6 +11,7 @@ CREATE TABLE Post (
   id          INTEGER PRIMARY KEY,
   categoryId  INTEGER NOT NULL,
   title       TEXT    NOT NULL,
+  views       NUMERIC NOT NULL DEFAULT 0,
   isPublished NUMERIC NOT NULL DEFAULT 0,
   CONSTRAINT Post_fk_categoryId FOREIGN KEY (categoryId)
     REFERENCES Category (id) ON UPDATE CASCADE ON DELETE CASCADE,
