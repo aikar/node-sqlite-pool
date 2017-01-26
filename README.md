@@ -1,17 +1,11 @@
-## SQLite Client for Node.js Apps
+## Pooled SQLite Client for Node.js Apps
 
-[![NPM version](http://img.shields.io/npm/v/sqlite.svg?style=flat-square)](https://www.npmjs.com/package/sqlite)
-[![NPM downloads](http://img.shields.io/npm/dm/sqlite.svg?style=flat-square)](https://www.npmjs.com/package/sqlite)
-[![Build Status](http://img.shields.io/travis/kriasoft/node-sqlite/master.svg?style=flat-square)](https://travis-ci.org/kriasoft/node-sqlite)
-[![Dependency Status](http://img.shields.io/david/kriasoft/node-sqlite.svg?style=flat-square)](https://david-dm.org/kriasoft/node-sqlite)
-[![Online Chat](http://img.shields.io/badge/chat-%23node--sqlite_on_Gitter-blue.svg?style=flat-square)](https://gitter.im/kriasoft/node-sqlite)
+<!-- [![NPM version](http://img.shields.io/npm/v/sqlite.svg?style=flat-square)](https://www.npmjs.com/package/sqlite) -->
+<!-- [![NPM downloads](http://img.shields.io/npm/dm/sqlite.svg?style=flat-square)](https://www.npmjs.com/package/sqlite) -->
+<!-- [![Build Status](http://img.shields.io/travis/kriasoft/node-sqlite/master.svg?style=flat-square)](https://travis-ci.org/kriasoft/node-sqlite) -->
+<!-- [![Dependency Status](http://img.shields.io/david/kriasoft/node-sqlite.svg?style=flat-square)](https://david-dm.org/kriasoft/node-sqlite) -->
 
-> A wrapper library that adds ES6 promises and SQL-based migrations API to
-> [sqlite3](https://github.com/mapbox/node-sqlite3/) ([docs](https://github.com/mapbox/node-sqlite3/wiki)).
-
----
-
-<p align="center"><b>🔥 Want to strengthen your core JavaScript skills and master ES6?</b><br>I would personally recommend this awesome <a href="https://es6.io/friend/konstantin">ES6 course</a> by Wes Bos.</p>
+> A wrapper library that adds ES6 promises, an SQL-based migrations API, connection pooling, and managed transactions to [sqlite3](https://github.com/mapbox/node-sqlite3/) ([docs](https://github.com/mapbox/node-sqlite3/wiki)). Originally based on the [sqlite](https://github.com/kriasoft/node-sqlite/) library.
 
 ---
 
@@ -19,51 +13,96 @@
 ### How to Install
 
 ```sh
-$ npm install sqlite --save
+$ npm install sqlite-pool --save
 ```
 
 
 ### How to Use
 
-This module has the same API as the original `sqlite3` library ([docs](https://github.com/mapbox/node-sqlite3/wiki/API)),
-except that all its API methods return ES6 Promises and do not accept callback arguments.
+This module has a similar API as the original `sqlite3` library ([docs](https://github.com/mapbox/node-sqlite3/wiki/API)), except that its equivalent API methods return ES6 Promises and do not accept callback arguments. Full API listings can be found in [API.md](https://github.com/rneilson/node-sqlite-pool/tree/master/API.md).
 
-Below is an example of how to use it with [Node.js](https://nodejs.org), [Express](http://expressjs.com/starter/hello-world.html) and [Babel](http://babeljs.io/):
+Below is an example of how to use it with [Node.js](https://nodejs.org) and [Express](http://expressjs.com/starter/hello-world.html), using [Bluebird](http://bluebirdjs.com/) instead of native Promises:
 
 ```js
-import express from 'express';
-import Promise from 'bluebird';
-import db from 'sqlite';
+const express = require('express');
+const Promise = require('bluebird');
+const Sqlite = require('sqlite-pool');
 
 const app = express();
 const port = process.env.PORT || 3000;
+const db = new Sqlite('./database.sqlite', { Promise });
 
-app.get('/post/:id', async (req, res, next) => {
-  try {
-    const [post, categories] = await Promise.all([
-      db.get('SELECT * FROM Post WHERE id = ?', req.params.id),
-      db.all('SELECT * FROM Category');
-    ]);
+app.get('/post/:id', (req, res, next) => {
+  return Promise.all([
+    db.get('SELECT * FROM Post WHERE id = ?', req.params.id),
+    db.all('SELECT * FROM Category')
+  ]).then(([post, categories]) => {
     res.render('post', { post, categories });
-  } catch (err) {
-    next(err);
-  }
+  }).catch(next);
 });
 
-Promise.resolve()
-  // First, try connect to the database
-  .then(() => db.open('./database.sqlite', { Promise }))
-  .catch(err => console.error(err.stack))
-  // Finally, launch Node.js app
-  .finally(() => app.listen(port));
+// Launch Node.js app
+app.listen(port);
 ```
 
-**NOTE**: For Node.js v5 and below use `var db = require('sqlite/legacy');`.
+**NOTE**: For Node.js v5 and below use `var Sqlite = require('sqlite-pool/legacy');`.
 
+### Multiple Connections
+
+Due to the asynchronous interface which the [sqlite3](https://github.com/mapbox/node-sqlite3/) Node.js library provides, isolation and query ordering is not guaranteed within any given connection. This module uses the [generic-pool](https://github.com/coopernurse/node-pool) library to create multiple connections to an SQLite database if desired, and queuing requests made using methods of the `Sqlite` class.
+
+The minimum/maximum number of open connections can be set with the `min` and `max` options when calling `new Sqlite()` (see the [API reference](https://github.com/rneilson/node-sqlite-pool/tree/master/API.md) for the full list of options);
+
+Below is an example with the `Sqlite.use()` method of how one connection may perform a transaction isolated from other calls to the same `Sqlite` instance:
+
+```javascript
+const express = require('express');
+const Promise = require('bluebird');
+const Sqlite = require('sqlite-pool');
+
+const app = express();
+const port = process.env.PORT || 3000;
+const db = new Sqlite('./database.sqlite', { Promise, min: 2, max: 4 });
+
+app.get('/post/:id', (req, res, next) => {
+  return Promise.all([
+    // This will acquire a database connection, and release it
+    // once the returned Promise is resolved or rejected
+    db.use((conn) => {
+      let id = req.params.id;
+      // This Promise chain will begin a transaction, and either
+      // commit if successful or rollback if an error is thrown
+      return conn.exec('BEGIN IMMEDIATE')
+        .then(() => conn.get('SELECT * FROM Post WHERE id = ?', id))
+        .then((post) => {
+          if (post === undefined) {
+            throw new Error(`Post id ${id} not found`);
+          }
+          return conn.run('UPDATE Post SET views = views + 1 WHERE id = ?', id)
+            .then(() => conn.exec('COMMIT'))
+            .then(() => post);
+        })
+        .catch(err => conn.exec('ROLLBACK').then(() => Promise.reject(err)));
+    }),
+    // This query will run in a separate connection, outside of
+    // the above transaction
+    db.all('SELECT * FROM Category')
+  ]).then(([post, categories]) => {
+    res.render('post', { post, categories });
+  }).catch(next);
+});
+
+// Launch Node.js app
+app.listen(port);
+```
+
+### Transactions
+
+TODO
 
 ### Migrations
 
-This module comes with a lightweight migrations API that works with [SQL-based migration files](https://github.com/kriasoft/node-sqlite/tree/master/migrations)
+This module comes with a lightweight migrations API that works with [SQL-based migration files](https://github.com/rneilson/node-sqlite-pool/tree/master/migrations)
 as the following example demonstrates:
 
 ##### `migrations/001-initial-schema.sql`
@@ -95,83 +134,40 @@ DROP INDEX Post_ix_categoryId;
 ##### `app.js` (Node.js/Express)
 
 ```js
-import express from 'express';
-import Promise from 'bluebird';
-import db from 'sqlite';
+const express = require('express');
+const Promise = require('bluebird');
+const Sqlite = require('sqlite-pool');
 
 const app = express();
 const port = process.env.PORT || 3000;
+const db = new Sqlite('./database.sqlite', { Promise });
 
 app.use(/* app routes */);
 
 Promise.resolve()
-  // First, try connect to the database and update its schema to the latest version
-  .then(() => db.open('./database.sqlite', { Promise }))
-  .then(() => db.migrate({ force: 'last' }))
+  // First, try to update the database schema to the latest version
+  .then(() => db.migrate({
+    force: 'last',                  // Default: false
+    table: 'migrations',            // Default: 'migrations'
+    migrationsPath: './migrations'  // Default: './migrations'
+  }))
   .catch(err => console.error(err.stack))
   // Finally, launch Node.js app
   .finally(() => app.listen(port));
 ```
 
-**NOTE**: For the development environment, while working on the database schema, you may want to set
-`force: 'last'` (default `false`) that will force the migration API to rollback and re-apply the
-latest migration over again each time when Node.js app launches. 
+**NOTE**: For the development environment, while working on the database schema, you may want to set `force: 'last'` (default `false`) that will force the migration API to rollback and re-apply the latest migration over again each time when Node.js app launches. 
 
-
-### Multiple Connections
-
-The `open` method resolves to the db instance which can be used in order to reference multiple open databases.
-
-ES6
-```
-import sqlite from 'sqlite';
-
-Promise.all([
-  sqlite.open('./main.sqlite', { Promise }),
-  sqlite.open('./users.sqlite', { Promise })
-]).then(function([mainDb, usersDb]){
-  ...
-});
-```
-
-ES7+ Async/Await
-
-```
-import sqlite from 'sqlite';
-
-async function main() {
-  const [mainDb, usersDb] = await Promise.all([
-    sqlite.open('./main.sqlite', { Promise }),
-    sqlite.open('./users.sqlite', { Promise })
-  ]);
-  ...
-}
-main();
-```
 
 ### References
 
-* [Using SQLite with Node.js for Rapid Prototyping](https://medium.com/@tarkus/node-js-and-sqlite-for-rapid-prototyping-bc9cf1f26f10) on Medium.com
 * [SQLite Documentation](https://www.sqlite.org/docs.html), e.g. [SQL Syntax](https://www.sqlite.org/lang.html), [Data Types](https://www.sqlite.org/datatype3.html) etc. on SQLite.org
-
-
-### Related Projects
-
-* [React Starter Kit](https://github.com/kriasoft/react-starter-kit) — Isomorphic web app boilerplate (Node.js/Express, React.js, GraphQL)
-* [ASP.NET Core Starter Kit](https://github.com/kriasoft/react-starter-kit) — Single-page app boilerplate (ASP.NET Core, React.js, Web API)
-* [Babel Starter Kit](https://github.com/kriasoft/babel-starter-kit) — JavaScript library boilerplate (ES2015, Babel, Rollup)
-* [Membership Database](https://github.com/membership/membership.db) — SQL database boilerplate for web app users, roles and auth tokens
-
-
-### Support
-
-* Join [#node-sqlite](https://gitter.im/kriasoft/node-sqlite) chat room on Gitter to stay up to date regarding the project
-* Join [#sqlite](https://webchat.freenode.net/?channels=sql,sqlite) IRC chat room on Freenode about general discussion about SQLite
 
 
 ### License
 
-The MIT License © 2015-2016 Kriasoft, LLC. All rights reserved.
+The MIT License © 2017 Raymond Neilson. All rights reserved.
+Original work © 2015-2016 Kriasoft, LLC. All rights reserved.
 
 ---
-Made with ♥ by Konstantin Tarkus ([@koistya](https://twitter.com/koistya)) and [contributors](https://github.com/kriasoft/node-sqlite/graphs/contributors)
+Original library by Konstantin Tarkus ([@koistya](https://twitter.com/koistya)) and [contributors](https://github.com/rneilson/node-sqlite-pool/graphs/contributors)
