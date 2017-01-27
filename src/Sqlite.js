@@ -41,10 +41,11 @@ const defaults = {
 };
 
 class Sqlite {
-  constructor (filename, options) {
+  constructor (filename = ':memory:', options = {}) {
     // Extract options
     const {
       mode,
+      verbose,
       busyTimeout,
       foreignKeys,
       walMode,
@@ -59,9 +60,9 @@ class Sqlite {
 
     // Re-consolidate options
     this._pool_opts = { min, max, Promise, acquireTimeoutMillis: acquireTimeout };
-    this._sqlite_file = filename;
     this._sqlite_opts = { mode, verbose, busyTimeout, foreignKeys, walMode };
-    this._sqlite_ext = loadExtensions;
+    this._sqlite_file = filename;
+    this._sqlite_extn = loadExtensions;
     this.trxImmediate = trxImmediate;
     this.delayRelease = delayRelease;
     this.Promise = Promise;
@@ -134,9 +135,9 @@ class Sqlite {
         }
       });
 
-      // Load extensions
       // Await each for consistency
-      for (const extension of this._sqlite_ext) {
+      // Load extensions
+      for (const extension of this._sqlite_extn) {
         const extensionPath = path.resolve(extension);
         yield new Promise((resolve, reject) => {
           connection.driver.loadExtension(extensionPath, (err) => {
