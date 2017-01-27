@@ -84,6 +84,18 @@ class Sqlite {
     this._pool = genericPool.createPool(this._pool_factory, this._pool_opts);
   }
 
+  static get OPEN_READONLY () {
+    return sqlite3.OPEN_READONLY;
+  }
+
+  static get OPEN_READWRITE () {
+    return sqlite3.OPEN_READWRITE;
+  }
+
+  static get OPEN_CREATE () {
+    return sqlite3.OPEN_CREATE;
+  }
+
   _create () {
     return this.async(function* _createAsync () {
       const Promise = this.Promise;
