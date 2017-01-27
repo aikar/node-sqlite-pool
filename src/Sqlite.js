@@ -21,6 +21,7 @@ import { isThenable, asyncRunner } from './utils';
 const defaults = {
   // sqlite defaults
   mode: null,
+  verbose: false,
   busyTimeout: 1000,
   foreignKeys: true,
   walMode: true,
@@ -58,7 +59,8 @@ class Sqlite {
 
     // Re-consolidate options
     this._pool_opts = { min, max, Promise, acquireTimeoutMillis: acquireTimeout };
-    this._sqlite_opts = { filename, mode, busyTimeout, foreignKeys, walMode };
+    this._sqlite_file = filename;
+    this._sqlite_opts = { mode, verbose, busyTimeout, foreignKeys, walMode };
     this._sqlite_ext = loadExtensions;
     this.trxImmediate = trxImmediate;
     this.delayRelease = delayRelease;
@@ -101,6 +103,7 @@ class Sqlite {
       const Promise = this.Promise;
       const trxImmediate = this.trxImmediate;
       const options = this._sqlite_opts;
+      const filename = this._sqlite_file;
 
       // Create database connection, wait until open complete
       const connection = yield new Promise((resolve, reject) => {
@@ -113,10 +116,15 @@ class Sqlite {
         };
 
         if (options.mode !== null) {
-          driver = new sqlite3.Database(options.filename, options.mode, callback);
+          driver = new sqlite3.Database(filename, options.mode, callback);
         }
         else {
-          driver = new sqlite3.Database(options.filename, callback);
+          driver = new sqlite3.Database(filename, callback);
+        }
+
+        // Can't reset this per connection
+        if (options.verbose) {
+          driver.verbose();
         }
 
         // Busy timeout default hardcoded to 1000ms, so
