@@ -24,7 +24,7 @@ class Database {
     this.driver = driver;
     this.Promise = Promise;
     this.trxImmediate = trxImmediate;
-    this.async = asyncRunner(Promise);
+    this._async = asyncRunner(Promise);
   }
 
   run (sql, ...args) {
@@ -144,7 +144,7 @@ class Database {
   }
 
   _trxWrap (fn, immediate, isAsync = false) {
-    return this.async(function* _trxWrapAsync () {
+    return this._async(function* _trxWrapAsync () {
       // Begin transaction
       if (immediate) {
         yield this.exec('BEGIN IMMEDIATE');
@@ -156,7 +156,7 @@ class Database {
       let result;
       try {
         // Pass connection to function
-        result = yield isAsync ? this.async(fn, this) : fn.call(this, this);
+        result = yield isAsync ? this._async(fn, this) : fn.call(this, this);
 
         // Commit
         yield this.exec('COMMIT');

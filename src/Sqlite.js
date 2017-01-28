@@ -68,7 +68,7 @@ class Sqlite {
     this.Promise = Promise;
 
     // Async runner
-    this.async = asyncRunner(Promise);
+    this._async = asyncRunner(Promise);
 
     // Special case min/max for anonymous or in-memory database
     if (filename === '' || filename === ':memory:') {
@@ -100,7 +100,7 @@ class Sqlite {
   }
 
   _create () {
-    return this.async(function* _createAsync () {
+    return this._async(function* _createAsync () {
       const Promise = this.Promise;
       const trxImmediate = this.trxImmediate;
       const options = this._sqlite_opts;
@@ -181,13 +181,13 @@ class Sqlite {
   }
 
   _acquireRelease (fn, isAsync = false) {
-    return this.async(function* _acquireReleaseAsync () {
+    return this._async(function* _acquireReleaseAsync () {
       const connection = yield this._pool.acquire();
       let result;
       try {
         if (isAsync) {
           // Run fn as async (generator)
-          result = yield this.async(fn, connection);
+          result = yield this._async(fn, connection);
         }
         else {
           // Pass connection to function
@@ -202,7 +202,7 @@ class Sqlite {
   }
 
   close () {
-    return this.async(function* _closeAsync () {
+    return this._async(function* _closeAsync () {
       yield this._pool.drain();
       yield this._pool.clear();
     });
@@ -254,7 +254,7 @@ class Sqlite {
    * Migrates database schema to the latest version
    */
   migrate ({ force, table = 'migrations', migrationsPath = './migrations' } = {}) {
-    return this.async(function* _migrateAsync () {
+    return this._async(function* _migrateAsync () {
       const Promise = this.Promise;
       const location = path.resolve(migrationsPath);
 
