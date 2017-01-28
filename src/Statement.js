@@ -116,14 +116,30 @@ class Statement {
     const [params, callback] = prepareParams(args, true);
 
     return new this.Promise((resolve, reject) => {
-      this.stmt.each(params, callback, (err, rowsCount = 0) => {
+      let each_err = null;
+      const each_fn = (err, row) => {
+        if (each_err !== null) {
+          return;
+        }
+        try {
+          callback(row);
+        }
+        catch (e) {
+          each_err = e;
+        }
+      };
+      const done_fn = (err, rowsCount = 0) => {
         if (err) {
           reject(err);
+        }
+        else if (each_err) {
+          reject(each_err);
         }
         else {
           resolve(rowsCount);
         }
-      });
+      };
+      this.stmt.each(params, each_fn, done_fn);
     });
   }
 
