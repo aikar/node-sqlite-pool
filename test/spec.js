@@ -56,7 +56,7 @@ it('Should allow named parameters to be used', (done) => {
     .then((stmt) => {
       expect(stmt.lastID).to.equal(2);
     }));
-  p = p.then(() => db.each('SELECT col FROM tbl WHERE ROWID = ?', [2], (err, result) => {
+  p = p.then(() => db.each('SELECT col FROM tbl WHERE ROWID = ?', [2], (result) => {
     expect(result).to.be.deep.equal({ col: 'other thing' });
   }).then((rowsCount) => {
     expect(rowsCount).to.equal(1);
@@ -95,7 +95,7 @@ it('Should allow named parameters to be used with prepared statements', (done) =
         return stmt.finalize();
       }));
     q = q.then(() => conn.prepare('SELECT col FROM tbl WHERE ROWID = ?')
-      .then(stmt => stmt.each([2], (err, result) => {
+      .then(stmt => stmt.each([2], (result) => {
         expect(result).to.be.deep.equal({ col: 'other text' });
       }).then((rowsCount) => {
         expect(rowsCount).to.equal(1);
