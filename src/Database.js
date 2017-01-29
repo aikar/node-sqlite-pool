@@ -23,7 +23,7 @@ class Database {
   constructor (driver, { Promise, trxImmediate }) {
     this.driver = driver;
     this.Promise = Promise;
-    this.trxImmediate = trxImmediate;
+    this._immediate = trxImmediate;
     this._async = asyncRunner(Promise);
   }
 
@@ -150,11 +150,11 @@ class Database {
     });
   }
 
-  transaction (fn, immediate = this.trxImmediate) {
+  transaction (fn, immediate = this._immediate) {
     return this._trxWrap(fn, immediate);
   }
 
-  transactionAsync (gen, immediate = this.trxImmediate) {
+  transactionAsync (gen, immediate = this._immediate) {
     return this._trxWrap(gen, immediate, true);
   }
 

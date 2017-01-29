@@ -63,7 +63,7 @@ class Sqlite {
     this._sqlite_opts = { mode, verbose, busyTimeout, foreignKeys, walMode };
     this._sqlite_file = filename;
     this._sqlite_extn = loadExtensions;
-    this.trxImmediate = trxImmediate;
+    this._immediate = trxImmediate;
     this.delayRelease = delayRelease;
     this.Promise = Promise;
 
@@ -102,7 +102,7 @@ class Sqlite {
   _create () {
     return this._async(function* _createAsync () {
       const Promise = this.Promise;
-      const trxImmediate = this.trxImmediate;
+      const trxImmediate = this._immediate;
       const options = this._sqlite_opts;
       const filename = this._sqlite_file;
 
@@ -242,11 +242,11 @@ class Sqlite {
     return this._acquireRelease(gen, true);
   }
 
-  transaction (fn, immediate = this.trxImmediate) {
+  transaction (fn, immediate = this._immediate) {
     return this._acquireRelease(conn => conn.transaction(fn, immediate));
   }
 
-  transactionAsync (gen, immediate = this.trxImmediate) {
+  transactionAsync (gen, immediate = this._immediate) {
     return this._acquireRelease(conn => conn.transactionAsync(gen, immediate));
   }
 
