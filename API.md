@@ -48,11 +48,21 @@ Acquires a connection from the pool as a Database object, calls `database.each()
 
 ### sqlite.use(callback)
 
-### sqlite.transaction(callback)
+Acquires a connection from the pool as a Database object, calls the callback, then releases the connection to the pool. Returns a Promise which resolves with the return value of the callback, or rejects with an error object.
+
+The signature of the callback is `function (database) {}`. If there is an error acquiring a connection, the callback will not be called. If the return value of the callback is a Promise, the connection will not be released until the Promise is resolved or rejected.
 
 ### sqlite.useAsync(generator)
 
-### sqlite.transactionAsync(generator)
+As with `sqlite.use()`, but taking a generator function with signature `function* (database) {}`, which is then called and iterated over with an executor derived from Babel's [async to generator transform](https://babeljs.io/docs/plugins/transform-async-to-generator/). This allows async/await style code using `yield` instead of `await`, where execution will suspend on yielded Promises, and resumed when resolved or rejected, with the advantage that the Promise library configured with the `Promise` option given to the Sqlite object will be used.
+
+### sqlite.transaction(callback, immediate)
+
+Acquires a connection from the pool as a Database object, calls `database.transaction()` with the given arguments, then releases the connection to the pool. Returns a Promise resolving with the return value of `database.transaction()`.
+
+### sqlite.transactionAsync(generator, immediate)
+
+Acquires a connection from the pool as a Database object, calls `database.transactionAsync()` with the given arguments, then releases the connection to the pool. Returns a Promise resolving with the return value of `database.transactionAsync()`.
 
 
 ## Class: Database
@@ -121,11 +131,19 @@ There is currently no way to abort execution of the query, but if the callback t
 
 ### database.prepare(sql, [param, ...])
 
-Prepares the SQL statement and optionally binds the specified parameters and calls the callback when done. Returns a Promise which resolves with a Statement object when preparing was successful, otherwise is rejected with an error object. When bind parameters are supplied, they are bound to the prepared statement before resolving.
+Prepares the SQL statement and optionally binds the specified parameters and calls the callback when done. Returns a Promise which resolves with a Statement object when preparing was successful, otherwise rejects with an error object. When bind parameters are supplied, they are bound to the prepared statement before resolving.
 
-### database.transaction(callback)
+### database.transaction(callback, immediate)
 
-### database.transactionAsync(generator)
+Begins a transaction, calls the callback, and either commits the transaction if the callback is executed successfully, or rolls back the transaction if an error is thrown by the callback. Returns a Promise which resolves to the return value of the callback if successful, otherwise rejects with an error object.
+
+The signature of the callback is `function (database) {}`. If there is an error beginning the transaction, the callback will not be called. If the return value of the callback is a Promise, the transaction will not be committed or rolled back until the Promise is resolved or rejected.
+
+If `immediate` is `true`, an immediate transaction will be started with `BEGIN IMMEDIATE`, otherwise a deferred transaction will be started with `BEGIN`. Default is the value of the `trxImmediate` option given to the parent Sqlite object, which defaults to `true` to avoid lock escalation deadlocks. Please consult the [SQLite documentation](https://www.sqlite.org/lang_transaction.html#immediate) for details.
+
+### database.transactionAsync(generator, immediate)
+
+As with `database.transaction()`, but taking a generator function with signature `function* (database) {}`, which is then called and iterated over with an executor derived from Babel's [async to generator transform](https://babeljs.io/docs/plugins/transform-async-to-generator/). This allows async/await style code using `yield` instead of `await`, where execution will suspend on yielded Promises, and resumed when resolved or rejected, with the advantage that the Promise library configured with the `Promise` option given to the parent Sqlite object will be used.
 
 
 ## Class: Statement
