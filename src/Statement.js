@@ -117,6 +117,7 @@ class Statement {
 
     return new this.Promise((resolve, reject) => {
       let error = null;
+
       const cb = (err, row) => {
         if (error !== null) {
           return;
@@ -128,6 +129,7 @@ class Statement {
           error = e;
         }
       };
+
       const done = (err, rowsCount = 0) => {
         if (err) {
           reject(err);
@@ -139,6 +141,7 @@ class Statement {
           resolve(rowsCount);
         }
       };
+
       this.stmt.each(params, cb, done);
     });
   }

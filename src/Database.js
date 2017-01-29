@@ -94,8 +94,10 @@ class Database {
 
   each (sql, ...args) {
     const [params, callback] = prepareParams(args, true);
+
     return new this.Promise((resolve, reject) => {
       let error = null;
+
       const cb = (err, row) => {
         if (error !== null) {
           return;
@@ -107,6 +109,7 @@ class Database {
           error = e;
         }
       };
+
       const done = (err, rowsCount = 0) => {
         if (err) {
           reject(err);
@@ -118,6 +121,7 @@ class Database {
           resolve(rowsCount);
         }
       };
+
       this.driver.each(sql, params, cb, done);
     });
   }
