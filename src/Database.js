@@ -192,10 +192,10 @@ class Database {
         trxImmediate: this._immediate,
         trxParent: this
       });
-      this._trx = trx;
 
       // Begin transaction
       yield immediate ? trx.exec('BEGIN IMMEDIATE') : trx.exec('BEGIN');
+      this._trx = trx;
 
       let result;
       try {
