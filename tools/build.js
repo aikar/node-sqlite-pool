@@ -61,6 +61,7 @@ promise = promise.then(() => {
   // fs.writeFileSync('build/main.d.ts', fs.readFileSync('src/main.d.ts', 'utf-8'), 'utf-8');
   fs.writeFileSync('build/LICENSE.txt', fs.readFileSync('LICENSE.txt', 'utf-8'), 'utf-8');
   fs.writeFileSync('build/README.md', fs.readFileSync('README.md', 'utf-8'), 'utf-8');
+  fs.writeFileSync('build/API.md', fs.readFileSync('API.md', 'utf-8'), 'utf-8');
 });
 
 promise.catch(err => console.error(err.stack)); // eslint-disable-line no-console
