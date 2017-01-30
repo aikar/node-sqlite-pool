@@ -1,14 +1,6 @@
 ## Pooled SQLite Client for Node.js Apps
 
-<!-- [![NPM version](http://img.shields.io/npm/v/sqlite.svg?style=flat-square)](https://www.npmjs.com/package/sqlite) -->
-<!-- [![NPM downloads](http://img.shields.io/npm/dm/sqlite.svg?style=flat-square)](https://www.npmjs.com/package/sqlite) -->
-<!-- [![Build Status](http://img.shields.io/travis/kriasoft/node-sqlite/master.svg?style=flat-square)](https://travis-ci.org/kriasoft/node-sqlite) -->
-<!-- [![Dependency Status](http://img.shields.io/david/kriasoft/node-sqlite.svg?style=flat-square)](https://david-dm.org/kriasoft/node-sqlite) -->
-
-> A wrapper library that adds ES6 promises, an SQL-based migrations API, connection pooling, and managed transactions to [sqlite3](https://github.com/mapbox/node-sqlite3/) ([docs](https://github.com/mapbox/node-sqlite3/wiki)). Originally based on the [sqlite](https://github.com/kriasoft/node-sqlite/) library.
-
----
-
+A wrapper library that adds ES6 promises, an SQL-based migrations API, connection pooling, and managed transactions to [sqlite3](https://github.com/mapbox/node-sqlite3/) ([docs](https://github.com/mapbox/node-sqlite3/wiki)). Originally based on the [sqlite](https://github.com/kriasoft/node-sqlite/) library.
 
 ### How to Install
 
@@ -23,7 +15,7 @@ This module has a similar API as the original `sqlite3` library ([docs](https://
 
 Below is an example of how to use it with [Node.js](https://nodejs.org) and [Express](http://expressjs.com/starter/hello-world.html), using [Bluebird](http://bluebirdjs.com/) instead of native Promises:
 
-```js
+```javascript
 const express = require('express');
 const Promise = require('bluebird');
 const Sqlite = require('sqlite-pool');
@@ -49,9 +41,9 @@ app.listen(port);
 
 ### Multiple Connections
 
-Due to the asynchronous interface which the [sqlite3](https://github.com/mapbox/node-sqlite3/) Node.js library provides, isolation and query ordering is not guaranteed within any given connection. This module uses the [generic-pool](https://github.com/coopernurse/node-pool) library to create multiple connections to an SQLite database if desired, and queuing requests made using methods of the `Sqlite` class.
+Due to the asynchronous interface which the [sqlite3](https://github.com/mapbox/node-sqlite3/) Node.js library provides, isolation and query ordering is not guaranteed within any given connection. This module uses the [generic-pool](https://github.com/coopernurse/node-pool) library to create multiple connections to an SQLite database if desired, and to queue requests made using methods of the `Sqlite` class.
 
-The minimum/maximum number of open connections can be set with the `min` and `max` options when calling `new Sqlite()` (see the [API reference](https://github.com/rneilson/node-sqlite-pool/tree/master/API.md) for the full list of options);
+The minimum/maximum number of open connections can be set with the `min` and `max` options when calling `new Sqlite()` (see the [API reference](https://github.com/rneilson/node-sqlite-pool/tree/master/API.md) for the full list of options).
 
 Below is an example with the `Sqlite.use()` method of how one connection may perform a transaction isolated from other calls to the same `Sqlite` instance:
 
@@ -98,7 +90,45 @@ app.listen(port);
 
 ### Transactions
 
-TODO
+This module also provides managed transactions, with automatic commit or rollback. Below is a modified version of the above example, using `Sqlite.transaction()`:
+
+```javascript
+const express = require('express');
+const Promise = require('bluebird');
+const Sqlite = require('sqlite-pool');
+
+const app = express();
+const port = process.env.PORT || 3000;
+const db = new Sqlite('./database.sqlite', { Promise, min: 2, max: 4 });
+
+app.get('/post/:id', (req, res, next) => {
+  return Promise.all([
+    // This will acquire a database connection, and release it
+    // once the returned Promise is resolved or rejected
+    db.transaction((trx) => {
+      let id = req.params.id;
+      // This Promise chain will begin a transaction, and either
+      // commit if successful or rollback if an error is thrown
+      return trx.get('SELECT * FROM Post WHERE id = ?', id)
+        .then((post) => {
+          if (post === undefined) {
+            throw new Error(`Post id ${id} not found`);
+          }
+          return trx.run('UPDATE Post SET views = views + 1 WHERE id = ?', id)
+            .then(() => post);
+        });
+    }),
+    // This query will run in a separate connection, outside of
+    // the above transaction
+    db.all('SELECT * FROM Category')
+  ]).then(([post, categories]) => {
+    res.render('post', { post, categories });
+  }).catch(next);
+});
+
+// Launch Node.js app
+app.listen(port);
+```
 
 ### Migrations
 
@@ -183,5 +213,4 @@ Promise.resolve()
 The MIT License © 2017 Raymond Neilson. All rights reserved.
 Original work © 2015-2016 Kriasoft, LLC. All rights reserved.
 
----
 Original library by Konstantin Tarkus ([@koistya](https://twitter.com/koistya)) and [contributors](https://github.com/rneilson/node-sqlite-pool/graphs/contributors)
