@@ -166,27 +166,11 @@ class Database {
   }
 
   transaction (fn, immediate = this._immediate) {
-    this._trxCheck(true);
-
     return this._trxWrap(fn, immediate);
   }
 
   transactionAsync (gen, immediate = this._immediate) {
-    this._trxCheck(true);
-
     return this._trxWrap(gen, immediate, true);
-  }
-
-  _begin (immediate = this._immediate) {
-    return immediate ? this.exec('BEGIN IMMEDIATE') : this.exec('BEGIN');
-  }
-
-  _commit () {
-    return this.exec('COMMIT');
-  }
-
-  _rollback () {
-    return this.exec('ROLLBACK');
   }
 
   _trxCheck (parent = false) {
@@ -199,6 +183,8 @@ class Database {
   }
 
   _trxWrap (fn, immediate, isAsync = false) {
+    this._trxCheck(true);
+
     return this._async(function* _trxWrapAsync () {
       // Create child Database object for transaction
       const trx = new Database(this.driver, {
@@ -209,7 +195,7 @@ class Database {
       this._trx = trx;
 
       // Begin transaction
-      yield trx._begin(immediate);
+      yield immediate ? trx.exec('BEGIN IMMEDIATE') : trx.exec('BEGIN');
 
       let result;
       try {
@@ -217,11 +203,11 @@ class Database {
         result = yield isAsync ? this._async(fn, trx) : fn.call(this, trx);
 
         // Commit
-        yield trx._commit();
+        yield trx.exec('COMMIT');
       }
       catch (err) {
         // Roll back, release connection, and re-throw
-        yield trx._rollback();
+        yield trx.exec('ROLLBACK');
         throw err;
       }
       finally {
