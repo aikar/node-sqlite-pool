@@ -20,14 +20,17 @@ class Database {
    * @param driver An instance of SQLite3 driver library.
    * @param promiseLibrary ES6 Promise library to use.
      */
-  constructor (driver, { Promise, trxImmediate }) {
+  constructor (driver, { Promise, trxImmediate, trxParent = null }) {
     this.driver = driver;
     this.Promise = Promise;
-    this._immediate = trxImmediate;
     this._async = asyncRunner(Promise);
+    this._immediate = trxImmediate;
+    this._parent = trxParent;
+    this._trx = null;
   }
 
   run (sql, ...args) {
+    this._trxCheck();
     const Promise = this.Promise;
     const params = prepareParams(args);
 
@@ -47,6 +50,7 @@ class Database {
   }
 
   get (sql, ...args) {
+    this._trxCheck();
     const params = prepareParams(args);
 
     return new this.Promise((resolve, reject) => {
@@ -62,6 +66,7 @@ class Database {
   }
 
   all (sql, ...args) {
+    this._trxCheck();
     const params = prepareParams(args);
 
     return new this.Promise((resolve, reject) => {
@@ -80,6 +85,8 @@ class Database {
    * Runs all the SQL queries in the supplied string. No result rows are retrieved.
    */
   exec (sql) {
+    this._trxCheck();
+
     return new this.Promise((resolve, reject) => {
       this.driver.exec(sql, (err) => {
         if (err) {
@@ -93,6 +100,7 @@ class Database {
   }
 
   each (sql, ...args) {
+    this._trxCheck();
     const [params, callback] = prepareParams(args, true);
 
     return new this.Promise((resolve, reject) => {
@@ -127,6 +135,7 @@ class Database {
   }
 
   prepare (sql, ...args) {
+    this._trxCheck();
     const params = prepareParams(args);
 
     return new this.Promise((resolve, reject) => {
@@ -142,6 +151,8 @@ class Database {
   }
 
   wait () {
+    this._trxCheck();
+
     return new this.Promise((resolve, reject) => {
       this.driver.wait((err) => {
         if (err) {
@@ -155,35 +166,66 @@ class Database {
   }
 
   transaction (fn, immediate = this._immediate) {
+    this._trxCheck(true);
+
     return this._trxWrap(fn, immediate);
   }
 
   transactionAsync (gen, immediate = this._immediate) {
+    this._trxCheck(true);
+
     return this._trxWrap(gen, immediate, true);
+  }
+
+  _begin (immediate = this._immediate) {
+    return immediate ? this.exec('BEGIN IMMEDIATE') : this.exec('BEGIN');
+  }
+
+  _commit () {
+    return this.exec('COMMIT');
+  }
+
+  _rollback () {
+    return this.exec('ROLLBACK');
+  }
+
+  _trxCheck (parent = false) {
+    if (this._trx !== null) {
+      throw new Error("A transaction is currently active for this connection");
+    }
+    else if (parent && this._parent !== null) {
+      throw new Error("Managed savepoints are not supported at this time");
+    }
   }
 
   _trxWrap (fn, immediate, isAsync = false) {
     return this._async(function* _trxWrapAsync () {
+      // Create child Database object for transaction
+      const trx = new Database(this.driver, {
+        Promise: this.Promise,
+        trxImmediate: this._immediate,
+        trxParent: this
+      });
+      this._trx = trx;
+
       // Begin transaction
-      if (immediate) {
-        yield this.exec('BEGIN IMMEDIATE');
-      }
-      else {
-        yield this.exec('BEGIN');
-      }
+      yield trx._begin(immediate);
 
       let result;
       try {
         // Pass connection to function
-        result = yield isAsync ? this._async(fn, this) : fn.call(this, this);
+        result = yield isAsync ? this._async(fn, trx) : fn.call(this, trx);
 
         // Commit
-        yield this.exec('COMMIT');
+        yield trx._commit();
       }
       catch (err) {
         // Roll back, release connection, and re-throw
-        yield this.exec('ROLLBACK');
+        yield trx._rollback();
         throw err;
+      }
+      finally {
+        this._trx = null;
       }
 
       return result;
