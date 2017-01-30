@@ -54,7 +54,7 @@ The signature of the callback is `function (database) {}`. If there is an error 
 
 ### sqlite.useAsync(generator)
 
-As with `sqlite.use()`, but taking a generator function with signature `function* (database) {}`, which is then called and iterated over with an executor derived from Babel's [async to generator transform](https://babeljs.io/docs/plugins/transform-async-to-generator/). This allows async/await style code using `yield` instead of `await`, where execution will suspend on yielded Promises, and resumed when resolved or rejected, with the advantage that the Promise library configured with the `Promise` option given to the Sqlite object will be used.
+As with `sqlite.use()`, but taking a generator function with signature `function* (database) {}`, which is then called and iterated over with an executor derived from Babel's [async to generator transform](https://babeljs.io/docs/plugins/transform-async-to-generator/). This allows async/await style code using `yield` instead of `await`, where execution will suspend on yielded Promises, and resumed when resolved or rejected, with the advantage that the Promise library configured with the `Promise` option given to the Sqlite object will be used. Returns a Promise which resolves with the return value of the generator, or rejects with an error object.
 
 ### sqlite.transaction(callback, immediate)
 
@@ -62,7 +62,7 @@ Acquires a connection from the pool as a Database object, calls `database.transa
 
 ### sqlite.transactionAsync(generator, immediate)
 
-Acquires a connection from the pool as a Database object, calls `database.transactionAsync()` with the given arguments, then releases the connection to the pool. Returns a Promise resolving with the return value of `database.transactionAsync()`.
+As with `sqlite.transaction()`, but taking a generator function with signature `function* (database) {}`, as with `sqlite.useAsync()`. Returns a Promise which resolves with the return value of the generator, or rejects with an error object.
 
 
 ## Class: Database
