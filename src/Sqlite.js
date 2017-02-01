@@ -271,7 +271,7 @@ class Sqlite {
               .map(x => x.match(/^(\d+).(.*?)\.sql$/))
               .filter(x => x !== null)
               .map(x => ({ id: Number(x[1]), name: x[2], filename: x[0] }))
-              .sort((a, b) => a.id > b.id));
+              .sort((a, b) => a.id > b.id ? 1 : a.id < b.id ? -1 : 0));
           }
         });
       });
@@ -325,8 +325,10 @@ class Sqlite {
         // Undo migrations that exist only in the database but not in files,
         // also undo the last migration if the `force` option was set to `last`.
         const lastMigration = migrations[migrations.length - 1];
-        const prevMigrations = dbMigrations.slice().sort((a, b) => a.id < b.id);
-        for (const migration of prevMigrations) {
+        const prev = dbMigrations
+                      .slice()
+                      .sort((a, b) => a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
+        for (const migration of prev) {
           if (!migrations.some(x => x.id === migration.id) ||
               (force === 'last' && migration.id === lastMigration.id)) {
             yield conn.transactionAsync(function* _downAsync (trx) {
