@@ -56,7 +56,9 @@
         "imports": "always-multiline",
         "exports": "always-multiline",
         "functions": "ignore"
-      }]
+      }],
+      "no-nested-ternary": "off",
+      "no-confusing-arrow": ["error", {"allowParens": true}]
     }
   },
   "dependencies": {

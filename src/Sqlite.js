@@ -271,7 +271,7 @@ class Sqlite {
               .map(x => x.match(/^(\d+).(.*?)\.sql$/))
               .filter(x => x !== null)
               .map(x => ({ id: Number(x[1]), name: x[2], filename: x[0] }))
-              .sort((a, b) => a.id > b.id ? 1 : a.id < b.id ? -1 : 0));
+              .sort((a, b) => (a.id > b.id ? 1 : a.id < b.id ? -1 : 0)));
           }
         });
       });
@@ -327,7 +327,7 @@ class Sqlite {
         const lastMigration = migrations[migrations.length - 1];
         const prev = dbMigrations
                       .slice()
-                      .sort((a, b) => a.id < b.id ? 1 : a.id > b.id ? -1 : 0);
+                      .sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
         for (const migration of prev) {
           if (!migrations.some(x => x.id === migration.id) ||
               (force === 'last' && migration.id === lastMigration.id)) {

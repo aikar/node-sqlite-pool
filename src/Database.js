@@ -175,10 +175,10 @@ class Database {
 
   _trxCheck (parent = false) {
     if (this._trx !== null) {
-      throw new Error("A transaction is currently active for this connection");
+      throw new Error('A transaction is currently active for this connection');
     }
     else if (parent && this._parent !== null) {
-      throw new Error("Managed savepoints are not supported at this time");
+      throw new Error('Managed savepoints are not supported at this time');
     }
   }
 
@@ -190,7 +190,7 @@ class Database {
       const trx = new Database(this.driver, {
         Promise: this.Promise,
         trxImmediate: this._immediate,
-        trxParent: this
+        trxParent: this,
       });
 
       // Begin transaction
