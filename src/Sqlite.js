@@ -87,18 +87,6 @@ class Sqlite {
     this._pool = genericPool.createPool(this._pool_factory, this._pool_opts);
   }
 
-  static get OPEN_READONLY () {
-    return sqlite3.OPEN_READONLY;
-  }
-
-  static get OPEN_READWRITE () {
-    return sqlite3.OPEN_READWRITE;
-  }
-
-  static get OPEN_CREATE () {
-    return sqlite3.OPEN_CREATE;
-  }
-
   _create () {
     return this._async(function* _createAsync () {
       const Promise = this.Promise;
@@ -362,6 +350,41 @@ class Sqlite {
       return this;
     });
   }
+
+  static get OPEN_READONLY () { return sqlite3.OPEN_READONLY; }
+  static get OPEN_READWRITE () { return sqlite3.OPEN_READWRITE; }
+  static get OPEN_CREATE () { return sqlite3.OPEN_CREATE; }
+  static get VERSION () { return sqlite3.VERSION; }
+  static get SOURCE_ID () { return sqlite3.SOURCE_ID; }
+  static get VERSION_NUMBER () { return sqlite3.VERSION_NUMBER; }
+  static get OK () { return sqlite3.OK; }
+  static get ERROR () { return sqlite3.ERROR; }
+  static get INTERNAL () { return sqlite3.INTERNAL; }
+  static get PERM () { return sqlite3.PERM; }
+  static get ABORT () { return sqlite3.ABORT; }
+  static get BUSY () { return sqlite3.BUSY; }
+  static get LOCKED () { return sqlite3.LOCKED; }
+  static get NOMEM () { return sqlite3.NOMEM; }
+  static get READONLY () { return sqlite3.READONLY; }
+  static get INTERRUPT () { return sqlite3.INTERRUPT; }
+  static get IOERR () { return sqlite3.IOERR; }
+  static get CORRUPT () { return sqlite3.CORRUPT; }
+  static get NOTFOUND () { return sqlite3.NOTFOUND; }
+  static get FULL () { return sqlite3.FULL; }
+  static get CANTOPEN () { return sqlite3.CANTOPEN; }
+  static get PROTOCOL () { return sqlite3.PROTOCOL; }
+  static get EMPTY () { return sqlite3.EMPTY; }
+  static get SCHEMA () { return sqlite3.SCHEMA; }
+  static get TOOBIG () { return sqlite3.TOOBIG; }
+  static get CONSTRAINT () { return sqlite3.CONSTRAINT; }
+  static get MISMATCH () { return sqlite3.MISMATCH; }
+  static get MISUSE () { return sqlite3.MISUSE; }
+  static get NOLFS () { return sqlite3.NOLFS; }
+  static get AUTH () { return sqlite3.AUTH; }
+  static get FORMAT () { return sqlite3.FORMAT; }
+  static get RANGE () { return sqlite3.RANGE; }
+  static get NOTADB () { return sqlite3.NOTADB; }
+
 }
 
 export default Sqlite;
