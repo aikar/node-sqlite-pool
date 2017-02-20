@@ -64,6 +64,42 @@ Acquires a connection from the pool as a Database object, calls `database.transa
 
 As with `sqlite.transaction()`, but taking a generator function with signature `function* (database) {}`, as with `sqlite.useAsync()`. Returns a Promise which resolves with the return value of the generator, or rejects with an error object.
 
+### Constants
+
+`Sqlite.OPEN_READONLY`  
+`Sqlite.OPEN_READWRITE`  
+`Sqlite.OPEN_CREATE`  
+`Sqlite.VERSION`  
+`Sqlite.SOURCE_ID`  
+`Sqlite.VERSION_NUMBER`  
+`Sqlite.OK`  
+`Sqlite.ERROR`  
+`Sqlite.INTERNAL`  
+`Sqlite.PERM`  
+`Sqlite.ABORT`  
+`Sqlite.BUSY`  
+`Sqlite.LOCKED`  
+`Sqlite.NOMEM`  
+`Sqlite.READONLY`  
+`Sqlite.INTERRUPT`  
+`Sqlite.IOERR`  
+`Sqlite.CORRUPT`  
+`Sqlite.NOTFOUND`  
+`Sqlite.FULL`  
+`Sqlite.CANTOPEN`  
+`Sqlite.PROTOCOL`  
+`Sqlite.EMPTY`  
+`Sqlite.SCHEMA`  
+`Sqlite.TOOBIG`  
+`Sqlite.CONSTRAINT`  
+`Sqlite.MISMATCH`  
+`Sqlite.MISUSE`  
+`Sqlite.NOLFS`  
+`Sqlite.AUTH`  
+`Sqlite.FORMAT`  
+`Sqlite.RANGE`  
+`Sqlite.NOTADB`
+
 
 ## Class: Database
 
