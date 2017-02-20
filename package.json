@@ -34,8 +34,8 @@
     "transaction"
   ],
   "license": "MIT",
-  "main": "main.js",
-  "jsnext:main": "main.es6.js",
+  "main": "build/main.js",
+  "jsnext:main": "build/main.es6.js",
   "babel": {
     "plugins": [
       "transform-es2015-modules-commonjs"
@@ -102,6 +102,7 @@
   "scripts": {
     "lint": "eslint src test tools",
     "test": "node tools/build && mocha",
-    "build": "node tools/build"
+    "build": "node tools/build",
+    "postinstall": "npm run build"
   }
 }
