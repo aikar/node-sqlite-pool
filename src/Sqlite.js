@@ -12,6 +12,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import EventEmitter from 'events';
 import sqlite3 from 'sqlite3';
 import genericPool from 'generic-pool';
 import Database from './Database';
@@ -40,8 +41,10 @@ const defaults = {
   Promise: global.Promise,
 };
 
-class Sqlite {
+class Sqlite extends EventEmitter {
   constructor (filename = ':memory:', options = {}) {
+    super();
+
     // Extract options
     const {
       mode,
