@@ -120,8 +120,8 @@ class Sqlite extends EventEmitter {
 
         // Add event re-emitters
         driver.on('error', err => this.emit('error', err));
-        driver.on('open', () => this.emit('open', filename, driver));
-        driver.on('close', () => this.emit('close', filename, driver));
+        driver.once('open', () => this.emit('open', filename, driver));
+        driver.once('close', () => this.emit('close', filename, driver));
 
         // Can't reset this
         if (options.verbose) {
