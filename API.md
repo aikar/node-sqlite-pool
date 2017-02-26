@@ -4,7 +4,7 @@
 
 ### new Sqlite([filename], [options])
 
-Returns a new Sqlite object and automatically opens `options.min` connections to the database. There is no separate method to open the database.
+Returns a new Sqlite object and automatically opens `options.min` connections to the database. There is no separate method to open the database. Inherits from `EventEmitter`.
 
 * `filename`: Valid values are filenames, `':memory:'` for an anonymous in-memory database and `''` (the empty string) for an anonymous disk-based database. Anonymous databases are not persisted and when closing the database handle, their contents are lost. Default: `':memory:'`.
 
@@ -21,6 +21,31 @@ Returns a new Sqlite object and automatically opens `options.min` connections to
   * `trxImmediate`: Enables starting transactions with `BEGIN IMMEDIATE` instead of `BEGIN`. Can reduce [lock escalation deadlocks](https://www.sqlite.org/lang_transaction.html#immediate), especially in conjunction with WAL mode. Default: `true`.
   * `delayRelease`: Enables using `setImmediate()` to delay releasing connections back to the pool. This allows a Promise chain to continue before the next queued request is processed. Default: `true`.
   * `Promise`: Promise library to use. Default: `global.Promise`.
+
+### Event: 'error'
+
+* `error` <Error>
+
+Emitted if an error occurs in an underlying `sqlite3` object outside of a Promise chain, or when the connection pool encounters an error when creating or destroying a connection.
+
+### Event: 'open'
+
+* `filename` <String>
+* `driver` <sqlite3>
+
+Emitted when an underlying `sqlite3` object successfully opens the given database file.
+
+### Event: 'close'
+
+* `filename` <String>
+* `driver` <sqlite3>
+
+Emitted when an underlying `sqlite3` object successfully closes the given database file.
+
+### Event: 'trace'
+### Event: 'profile'
+
+These events are emitted as per the [`sqlite3` debugging API](https://github.com/mapbox/node-sqlite3/wiki/Debugging) when the `verbose` option is `true`.
 
 ### sqlite.close()
 
