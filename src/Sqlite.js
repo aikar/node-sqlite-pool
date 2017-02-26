@@ -88,6 +88,10 @@ class Sqlite extends EventEmitter {
 
     // Create pool
     this._pool = genericPool.createPool(this._pool_factory, this._pool_opts);
+
+    // Re-emit pool errors
+    this._pool.on('factoryCreateError', err => this.emit('error', err));
+    this._pool.on('factoryDestroyError', err => this.emit('error', err));
   }
 
   _create () {
@@ -114,9 +118,16 @@ class Sqlite extends EventEmitter {
           driver = new sqlite3.Database(filename, callback);
         }
 
-        // Can't reset this per connection
+        // Add event re-emitters
+        driver.on('error', err => this.emit('error', err));
+        driver.on('open', () => this.emit('open', filename, driver));
+        driver.on('close', () => this.emit('close', filename, driver));
+
+        // Can't reset this
         if (options.verbose) {
           driver.verbose();
+          driver.on('trace', (...args) => this.emit('trace', ...args));
+          driver.on('profile', (...args) => this.emit('profile', ...args));
         }
 
         // Busy timeout default hardcoded to 1000ms, so
