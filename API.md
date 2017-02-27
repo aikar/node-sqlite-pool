@@ -209,41 +209,41 @@ As with `database.transaction()`, but taking a generator function with signature
 
 ## Class: Statement
 
-## statement.sql
+### statement.sql
 
 Read-only getter property. Contains the SQL query string of the statement.
 
-## statement.lastID
+### statement.lastID
 
 Read-only getter property. Contains the last inserted row ID. Only valid when the query was a successfully completed `INSERT` statement. In all other cases, the content of this property is inaccurate and should not be used.
 
-## statement.changes
+### statement.changes
 
 Read-only getter property. Contains the number of rows affected by this query. Only valid when the query was a successfully completed `UPDATE` or `DELETE` statement. In all other cases, the content of this property is inaccurate and should not be used.
 
-## statement.bind([param, ...])
+### statement.bind([param, ...])
 
 Binds parameters to the prepared statement. Returns a Promise which resolves with the same Statement object when binding was successful, otherwise rejects an error object.
 
 Binding parameters with this function completely resets the statement object and row cursor and removes all previously bound parameters, if any.
 
-## statement.reset()
+### statement.reset()
 
 Resets the row cursor of the statement and preserves the parameter bindings. Use this function to re-execute the same query with the same bindings. Returns a Promise which resolves with the same Statement object.
 
-## statement.finalize()
+### statement.finalize()
 
 Finalizes the statement. Returns a Promise which resolves with the same Statement object.
 
 This is typically optional, but if you experience long delays before the next query is executed, explicitly finalizing your statement might be necessary. After the statement is finalized, all further function calls on that statement object will throw errors.
 
-## statement.run([param, ...])
+### statement.run([param, ...])
 
 Binds the specified parameters and executes the SQL query as with `database.run()`. Returns a Promise which resolves with the same Statement object, or rejects with an error object. This behaves identically to `database.run()` except that the Statement object will not be finalized after execution. This means you can run it multiple times.
 
 If you specify bind parameters, they will be bound to the statement before it is executed. Note that the bindings and the row cursor are reset when you specify even a single bind parameter.
 
-## statement.get([param, ...])
+### statement.get([param, ...])
 
 Binds the specified parameters and executes the SQL query as with `statement.run()`. Returns a Promise which resolves with `undefined` if the result set is empty, otherwise with an object containing the values for the first result row. The property names correspond to the column names of the result set. It is impossible to access them by column index; the only supported way is by column name.
 
@@ -251,7 +251,7 @@ Like with `statement.run()`, the statement will not be finalized after executing
 
 If no parameters are given, and the statement has already been bound using `database.prepare()`, `statement.bind()`, or a previous call to `statement.get()`, the next row will be retrieved.
 
-## statement.all([param, ...])
+### statement.all([param, ...])
 
 Binds the specified parameters and executes the SQL query as with `statement.run()`. Returns a Promise which resolves with an empty array if the result set is empty, otherwise with an array of objects, one for each result row which in turn contains the values of that row, like `database.get()`, or rejects with an error object.
 
@@ -259,7 +259,7 @@ Note that it first retrieves all result rows and stores them in memory. For quer
 
 Like with `statement.run()`, the statement will not be finalized after executing this function.
 
-## statement.each([param, ...], callback)
+### statement.each([param, ...], callback)
 
 Binds the specified parameters and executes the SQL query as with `statement.run()`, and calls the callback for each result row. Returns a Promise which resolves with the number of retrieved rows, if successful, or rejects with an error object.
 
