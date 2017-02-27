@@ -332,6 +332,7 @@ class Sqlite extends EventEmitter {
                       .sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
         for (const migration of prev) {
           if (!migrations.some(x => x.id === migration.id) ||
+              (Number.isInteger(force) && migration.id > force) ||
               (force === 'last' && migration.id === lastMigration.id)) {
             yield conn.transactionAsync(function* _downAsync (trx) {
               yield trx.exec(migration.down);
@@ -348,8 +349,12 @@ class Sqlite extends EventEmitter {
         const lastMigrationId = dbMigrations.length
                               ? dbMigrations[dbMigrations.length - 1].id
                               : 0;
+        const maxMigrationId = Number.isInteger(force)
+                             ? force
+                             : migrations[migrations.length - 1].id;
         for (const migration of migrations) {
-          if (migration.id > lastMigrationId) {
+          if (migration.id > lastMigrationId &&
+              migration.id <= maxMigrationId) {
             yield conn.transactionAsync(function* _upAsync (trx) {
               yield trx.exec(migration.up);
               yield trx.run(
