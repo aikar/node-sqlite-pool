@@ -24,21 +24,21 @@ Returns a new Sqlite object and automatically opens `options.min` connections to
 
 ### Event: 'error'
 
-* `error` <Error>
+* `'error' <Error>`
 
 Emitted if an error occurs in an underlying `sqlite3` object outside of a Promise chain, or when the connection pool encounters an error when creating or destroying a connection.
 
 ### Event: 'open'
 
-* `filename` <String>
-* `driver` <sqlite3>
+* `'filename' <String>`
+* `'driver' <sqlite3>`
 
 Emitted when an underlying `sqlite3` object successfully opens the given database file.
 
 ### Event: 'close'
 
-* `filename` <String>
-* `driver` <sqlite3>
+* `'filename' <String>`
+* `'driver' <sqlite3>`
 
 Emitted when an underlying `sqlite3` object successfully closes the given database file.
 
@@ -88,6 +88,16 @@ Acquires a connection from the pool as a Database object, calls `database.transa
 ### sqlite.transactionAsync(generator, immediate)
 
 As with `sqlite.transaction()`, but taking a generator function with signature `function* (database) {}`, as with `sqlite.useAsync()`. Returns a Promise which resolves with the return value of the generator, or rejects with an error object.
+
+### sqlite.migrate([options])
+
+Parses and applies SQL-based migrations. Each filename must be in the format `<id><separator><name>.sql`, eg `001-initial.sql` or `3.new-feature.sql`. Each file must have an 'up' and 'down' section, separated by a line consisting of `-- down` (case insensitive). SQL statements in the 'up' section will be executed when applying the migration, and those in the 'down' section when rolling back the migration.
+
+* `options`:
+  * `force`: Specified migration id to apply up to or roll back down to, if an integer, or `'last'` to rollback and re-apply the latest migration. No default value (will apply up to and including the latest).
+  * `table`: Name to use for the table used to track applied migrations. Default `'migrations'`.
+  * `migrationsPath`: Directory in which the migration files can be found. Default `'./migrations'`.
+
 
 ### Constants
 
