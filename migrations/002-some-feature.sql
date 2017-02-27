@@ -7,8 +7,12 @@ CREATE TABLE Test (
   name TEXT    NOT NULL
 );
 
+INSERT INTO Category (id, name) VALUES (2, 'Another');
+
 --------------------------------------------------------------------------------
 -- Down
 --------------------------------------------------------------------------------
+
+DELETE FROM Category WHERE id = 2;
 
 DROP TABLE Test;

@@ -167,7 +167,21 @@ it('Should migrate the database', (done) => {
     expect(result).to.be.deep.equal([{ id: 1, name: 'initial' }, { id: 2, name: 'some-feature' }]);
   }));
   p = p.then(() => db.all('SELECT * FROM Category').then((result) => {
+    expect(result).to.be.deep.equal([{ id: 1, name: 'Test' }, { id: 2, name: 'Another' }]);
+  }));
+  p = p.then(() => db.migrate({ force: 1 }));
+  p = p.then(() => db.all('SELECT id, name FROM migrations').then((result) => {
+    expect(result).to.be.deep.equal([{ id: 1, name: 'initial' }]);
+  }));
+  p = p.then(() => db.all('SELECT * FROM Category').then((result) => {
     expect(result).to.be.deep.equal([{ id: 1, name: 'Test' }]);
+  }));
+  p = p.then(() => db.migrate({ force: 2 }));
+  p = p.then(() => db.all('SELECT id, name FROM migrations').then((result) => {
+    expect(result).to.be.deep.equal([{ id: 1, name: 'initial' }, { id: 2, name: 'some-feature' }]);
+  }));
+  p = p.then(() => db.all('SELECT * FROM Category').then((result) => {
+    expect(result).to.be.deep.equal([{ id: 1, name: 'Test' }, { id: 2, name: 'Another' }]);
   }));
   p = p.then(() => db.close());
   p.then(done, done);
