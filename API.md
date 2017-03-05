@@ -98,7 +98,6 @@ Parses and applies SQL-based migrations. Each filename must be in the format `<i
   * `table`: Name to use for the table used to track applied migrations. Default `'migrations'`.
   * `migrationsPath`: Directory in which the migration files can be found. Default `'./migrations'`.
 
-
 ### Constants
 
 `Sqlite.OPEN_READONLY`  
@@ -136,7 +135,7 @@ Parses and applies SQL-based migrations. Each filename must be in the format `<i
 `Sqlite.NOTADB`
 
 
-## Class: Database
+## Class: Sqlite.Database
 
 ### database.run(sql, [param, ...])
 
@@ -217,7 +216,7 @@ If `immediate` is `true`, an immediate transaction will be started with `BEGIN I
 As with `database.transaction()`, but taking a generator function with signature `function* (database) {}`, which is then called and iterated over with an executor derived from Babel's [async to generator transform](https://babeljs.io/docs/plugins/transform-async-to-generator/). This allows async/await style code using `yield` instead of `await`, where execution will suspend on yielded Promises, and resumed when resolved or rejected, with the advantage that the Promise library configured with the `Promise` option given to the parent Sqlite object will be used.
 
 
-## Class: Statement
+## Class: Sqlite.Statement
 
 ### statement.sql
 

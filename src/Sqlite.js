@@ -16,6 +16,7 @@ import EventEmitter from 'events';
 import sqlite3 from 'sqlite3';
 import genericPool from 'generic-pool';
 import Database from './Database';
+import Statement from './Statement';
 import { isThenable, asyncRunner } from './utils';
 
 // Default options
@@ -368,6 +369,14 @@ class Sqlite extends EventEmitter {
 
       return this;
     });
+  }
+
+  static get Database () {
+    return Database;
+  }
+
+  static get Statement () {
+    return Statement;
   }
 
   static get OPEN_READONLY () { return sqlite3.OPEN_READONLY; }
