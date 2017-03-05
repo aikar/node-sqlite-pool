@@ -16,6 +16,9 @@ const expect = require('chai').expect;
 it('Should open a database connection', (done) => {
   const db = new Sqlite(':memory:');
   let p = Promise.resolve();
+  p = p.then(() => db.use((conn) => {
+    expect(conn).to.be.an.instanceof(Sqlite.Database);
+  }));
   p = p.then(() => db.exec('CREATE TABLE tbl (col TEXT)'));
   p = p.then(() => db.exec('INSERT INTO tbl VALUES ("test")'));
   p = p.then(() => db.get('SELECT col FROM tbl').then((result) => {
@@ -29,6 +32,7 @@ it('Should open a database connection', (done) => {
   }));
   p = p.then(() => db.run('UPDATE tbl SET col = ? WHERE col = ?', 'foo', 'test')).then((stmt) => {
     // Cannot use deep equals because stmt is a Statement instance
+    expect(stmt).to.be.an.instanceof(Sqlite.Statement);
     expect(stmt.lastID).to.equal(1);
     expect(stmt.changes).to.equal(1);
     expect(stmt.sql).to.equal('UPDATE tbl SET col = ? WHERE col = ?');
