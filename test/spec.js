@@ -47,6 +47,7 @@ it('Should allow named parameters to be used', (done) => {
   p = p.then(() => db.run('INSERT INTO tbl(col) VALUES (:col)', { ':col': 'something' })
     .then((stmt) => {
       expect(stmt.lastID).to.equal(1);
+      expect(stmt.changes).to.equal(1);
     }));
   p = p.then(() => db.get('SELECT col FROM tbl WHERE 1 = ? AND 5 = ?5', { 1: 1, 5: 5 })
     .then((result) => {
@@ -55,6 +56,7 @@ it('Should allow named parameters to be used', (done) => {
   p = p.then(() => db.run('INSERT INTO tbl(col) VALUES ($col)', { $col: 'other thing' })
     .then((stmt) => {
       expect(stmt.lastID).to.equal(2);
+      expect(stmt.changes).to.equal(1);
     }));
   p = p.then(() => db.each('SELECT col FROM tbl WHERE ROWID = ?', [2], (result) => {
     expect(result).to.be.deep.equal({ col: 'other thing' });
@@ -79,6 +81,7 @@ it('Should allow named parameters to be used with prepared statements', (done) =
       .then(stmt => stmt.run())
       .then((stmt) => {
         expect(stmt.lastID).to.equal(1);
+        expect(stmt.changes).to.equal(1);
         return stmt.finalize();
       }));
     q = q.then(() => conn.prepare('SELECT col FROM tbl WHERE 1 = ? AND 5 = ?5')
@@ -92,6 +95,7 @@ it('Should allow named parameters to be used with prepared statements', (done) =
       .then(stmt => stmt.run({ $col: 'other text' }))
       .then((stmt) => {
         expect(stmt.lastID).to.equal(2);
+        expect(stmt.changes).to.equal(1);
         return stmt.finalize();
       }));
     q = q.then(() => conn.prepare('SELECT col FROM tbl WHERE ROWID = ?')
@@ -121,10 +125,12 @@ it('Should allow chaining Statement.run() calls', (done) => {
     q = q.then(() => conn.prepare('INSERT INTO tbl(col1, col2, col3) VALUES (?, ?, ?)')
       .then(stmt => stmt.run('a1', 'a2', 'a3')).then((stmt) => {
         expect(stmt.lastID).to.equal(1);
+        expect(stmt.changes).to.equal(1);
         return stmt.run('b1', 'b2', 'b3');
       })
       .then((stmt) => {
         expect(stmt.lastID).to.equal(2);
+        expect(stmt.changes).to.equal(1);
         return stmt.finalize();
       }));
     q = q.then(() => conn.all('SELECT col1, col2, col3 FROM tbl').then((results) => {
@@ -151,6 +157,7 @@ it('Should handle BLOBs', (done) => {
   p = p.then(() => db.exec('CREATE TABLE dat (b BLOB)'));
   p = p.then(() => db.run('INSERT INTO dat(b) VALUES(?)', buf).then((stmt) => {
     expect(stmt.lastID).to.equal(1);
+    expect(stmt.changes).to.equal(1);
   }));
   p = p.then(() => db.get('SELECT b FROM dat').then((result) => {
     expect(result.b).to.be.instanceof(Buffer);
