@@ -205,10 +205,11 @@ class Sqlite extends EventEmitter {
   }
 
   close () {
-    return this._async(function* _closeAsync () {
-      yield this._pool.drain();
-      yield this._pool.clear();
-    });
+    return this.Promise.all([
+      this.use(conn => conn.wait()),
+      this._pool.drain().then(() => this._pool.clear())
+    ])
+    .then(() => {});
   }
 
   exec (...args) {
