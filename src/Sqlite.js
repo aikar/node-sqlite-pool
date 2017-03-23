@@ -205,11 +205,27 @@ class Sqlite extends EventEmitter {
   }
 
   close () {
-    return this.Promise.all([
-      this.use(conn => conn.wait()),
-      this._pool.drain().then(() => this._pool.clear())
-    ])
-    .then(() => {});
+    return this._async(function* _close() {
+      const to_close = [];
+      // Queue up enough acquire() calls for all pooled connections
+      while (to_close.length < this._pool.size) {
+        to_close.push(this._pool.acquire())
+      }
+      // Now set pool to draining to block further acquisitions
+      const drained = this._pool.drain();
+      // Wait for acquisitions
+      const closing = yield Promise.all(to_close);
+      // Close and destroy all but last connection
+      closing.splice(1).map(conn => this._pool.destroy(conn));
+      // Wait until only last connection open
+      while (this._pool.size > 1) {
+        yield new Promise((resolve) => setImmediate(resolve));
+      }
+      // Let pool finish draining now. then clear last connection
+      closing.map(conn => this._pool.release(conn));
+      yield drained;
+      yield this._pool.clear();
+    });
   }
 
   exec (...args) {
