@@ -388,14 +388,6 @@ class Sqlite extends EventEmitter {
     });
   }
 
-  static get Database () {
-    return Database;
-  }
-
-  static get Statement () {
-    return Statement;
-  }
-
   static get OPEN_READONLY () { return sqlite3.OPEN_READONLY; }
   static get OPEN_READWRITE () { return sqlite3.OPEN_READWRITE; }
   static get OPEN_CREATE () { return sqlite3.OPEN_CREATE; }
@@ -431,5 +423,7 @@ class Sqlite extends EventEmitter {
   static get NOTADB () { return sqlite3.NOTADB; }
 
 }
-
+Sqlite.Database = Database;
+Sqlite.Statement = Statement;
 export default Sqlite;
+//export {Database, Statement};
